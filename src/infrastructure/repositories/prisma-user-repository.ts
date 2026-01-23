@@ -31,23 +31,30 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
     }
 
     async buscarPorCorreo(correo: string): Promise<Usuario | null> {
-        const usuario = await prisma.usuario.findUnique({
-            where: { correo },
-            include: {
-                rol: true,
-                perfilArtista: {
-                    include: {
-                        redesSociales: { include: { redSocial: true } },
-                        metodosDonacion: { include: { metodoDonacion: true } },
-                        galeria: true
-                    }
-                },
-                perfilPublico: true,
-                perfilDiscoteca: true
-            }
-        });
-        if (!usuario) return null;
-        return this.mapToEntity(usuario);
+        console.log(`[Repo] findUnique START: ${correo}`);
+        try {
+            const usuario = await prisma.usuario.findUnique({
+                where: { correo },
+                include: {
+                    rol: true,
+                    perfilArtista: {
+                        include: {
+                            redesSociales: { include: { redSocial: true } },
+                            metodosDonacion: { include: { metodoDonacion: true } },
+                            galeria: true
+                        }
+                    },
+                    perfilPublico: true,
+                    perfilDiscoteca: true
+                }
+            });
+            console.log(`[Repo] findUnique RESULT: ${usuario ? 'FOUND ' + usuario.id : 'NULL'}`);
+            if (!usuario) return null;
+            return this.mapToEntity(usuario);
+        } catch (error) {
+            console.error('[Repo] findUnique ERROR:', error);
+            throw error;
+        }
     }
 
     async buscarPorId(id: string, usuarioSolicitanteId?: string): Promise<Usuario | null> {
@@ -138,7 +145,7 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
         datosActualizacion.actualizadoPor = id;
 
         if (datos.perfilArtista) {
-            const { redesSociales, metodosDonacion, galeria, imagenQR, nombreQR, urlPago, ...perfilArtistaData } = datos.perfilArtista;
+            const { redesSociales, metodosDonacion, galeria, imagenQR, nombreQR, urlPago, nombreUsuario, ...perfilArtistaData } = datos.perfilArtista;
 
             // Explicitly handle lugaresConocidos to avoid spread loss
             const nestedUpdate: Record<string, unknown> = {
@@ -148,7 +155,6 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
             };
 
             // Handle imagenQR, nombreQR, and urlPago at PerfilArtista level
-            // Delete old QR image from Cloudinary if it's being changed
             if (imagenQR !== undefined) {
                 // Get existing QR image
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -157,7 +163,6 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
                     select: { imagenQR: true }
                 });
 
-                // If there's an existing QR image and it's different from the new one, delete it from Cloudinary
                 if (existingProfile?.imagenQR && existingProfile.imagenQR !== imagenQR) {
                     const publicId = this.extractPublicIdFromUrl(existingProfile.imagenQR);
                     if (publicId) {
@@ -213,7 +218,6 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
             }
 
             if (galeria && Array.isArray(galeria)) {
-                // Get existing gallery images to delete from Cloudinary
                 const existingGallery = await prisma.galeriaArtista.findMany({
                     where: { perfilArtistaId: (await prisma.perfilArtista.findUnique({ where: { usuarioId: id } }))?.id },
                     select: { urlImagen: true }
@@ -475,7 +479,6 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
 
     /**
      * Extract publicId (relative path without extension) from a URL
-     * Supports both Cloudinary (legacy) and Local (new) URLs
      */
     private extractPublicIdFromUrl(url: string): string | null {
         try {
@@ -486,7 +489,6 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
                 return match ? match[1] : null;
             }
 
-            // 2. Handle Cloudinary URLs (Legacy fallback)
             const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.\w+$/);
             return match ? match[1] : null;
         } catch (error) {

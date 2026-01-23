@@ -92,6 +92,27 @@ async function main() {
         });
     }
 
+    console.log('   - Seeding Configuracion Sistema...');
+    const configs = [
+        { clave: 'MAX_FILE_SIZE', valor: '5242880', categoria: 'GENERAL', descripcion: 'Tamaño máximo de archivo en bytes (5MB)' },
+        { clave: 'ALLOWED_EXTENSIONS', valor: 'jpg,jpeg,png,webp', categoria: 'GENERAL', descripcion: 'Extensiones permitidas para imágenes' },
+        { clave: 'SYSTEM_CURRENCY', valor: 'PEN', categoria: 'PAYMENT', descripcion: 'Moneda por defecto del sistema' }
+    ];
+
+    for (const conf of configs) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (prisma as any).configuracionSistema.upsert({
+            where: { clave: conf.clave },
+            update: {},
+            create: {
+                clave: conf.clave,
+                valor: conf.valor,
+                categoria: conf.categoria,
+                descripcion: conf.descripcion
+            }
+        });
+    }
+
     console.log('✅ Seeding finished successfully.');
 }
 

@@ -13,7 +13,7 @@ CREATE TABLE `ConfiguracionSistema` (
     `clave` VARCHAR(191) NOT NULL,
     `valor` TEXT NOT NULL,
     `descripcion` VARCHAR(191) NULL,
-    `categoria` ENUM('CLOUDINARY', 'SPOTIFY', 'GENERAL', 'EMAIL', 'PAYMENT') NOT NULL,
+    `categoria` ENUM('SPOTIFY', 'GENERAL', 'EMAIL', 'PAYMENT') NOT NULL,
     `esSecreta` BOOLEAN NOT NULL DEFAULT false,
     `creadoEn` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `actualizadoEn` DATETIME(3) NOT NULL,
