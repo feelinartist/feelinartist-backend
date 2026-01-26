@@ -6,6 +6,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import routes from './presentation/routes';
 import { SocketService } from './infrastructure/services/socket-service';
+import { statsSyncService } from './infrastructure/services/stats-sync-service';
 import { generalLimiter } from './middleware/rate-limit';
 
 const app = express();
@@ -15,6 +16,9 @@ const httpServer = createServer(app);
 async function startServer() {
     // Cargar FRONTEND_URL de variables de entorno
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    // Start Stats Sync Service (Background Worker)
+    statsSyncService.start();
 
     // Configurar Socket.IO con la URL del frontend
     const io = new Server(httpServer, {

@@ -1,5 +1,8 @@
 import { RepositorioUsuario } from "../../domain/repositories/user-repository";
 import { Usuario, ActualizarUsuarioDTO } from "../../domain/entities/user";
+import { LocalFileService } from "../../infrastructure/services/local-file-service";
+import { QrService } from "../../infrastructure/services/qr-service";
+import { configService } from "../../infrastructure/services/config-service";
 
 interface ActualizarUsuarioRequest {
     usuarioId: string;
@@ -13,7 +16,13 @@ interface ActualizarUsuarioRequest {
 }
 
 export class ActualizarUsuarioCasoUso {
-    constructor(private repositorioUsuario: RepositorioUsuario) { }
+    private localFileService: LocalFileService;
+    private qrService: QrService;
+
+    constructor(private repositorioUsuario: RepositorioUsuario) {
+        this.localFileService = new LocalFileService();
+        this.qrService = new QrService();
+    }
 
     async ejecutar(dto: ActualizarUsuarioRequest & {
         pais?: string;
@@ -109,6 +118,21 @@ export class ActualizarUsuarioCasoUso {
                 ...(dto.urlYoutubeFavorito !== undefined && { urlYoutubeFavorito: dto.urlYoutubeFavorito }),
                 ...(dto.urlSoundCloudFavorito !== undefined && { urlSoundCloudFavorito: dto.urlSoundCloudFavorito }),
             };
+
+            // 🎵 Regenerate musicQR if username changed
+            if (datosActualizacion.nombreUsuario && datosActualizacion.nombreUsuario !== usuario.nombreUsuario) {
+                try {
+                    const frontendUrl = await configService.get('FRONTEND_URL', 'http://localhost:3000');
+                    const profileUrl = `${frontendUrl}/artist/${datosActualizacion.nombreUsuario}/music`;
+                    const qrBuffer = await this.qrService.generateQrCode(profileUrl);
+                    const qrBase64 = `data:image/png;base64,${qrBuffer.toString('base64')}`;
+
+                    const result = await this.localFileService.uploadBase64Image(qrBase64, usuario.id, 'music', 'qr');
+                    datosActualizacion.perfilArtista.musicQR = result.url;
+                } catch (error) {
+                    console.error("Error regenerating Music QR on username change:", error);
+                }
+            }
         } else if (usuario.perfilPublico) {
             datosActualizacion.perfilPublico = {
                 ...(dto.pais && { pais: dto.pais }),

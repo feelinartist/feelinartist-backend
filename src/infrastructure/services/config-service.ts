@@ -13,9 +13,7 @@ class ConfigService {
     private readonly CLAVES_ENCRIPTADAS = [
         'NEXTAUTH_SECRET',
         'GOOGLE_CLIENT_SECRET',
-        'INTERNAL_API_KEY',
-        'SPOTIFY_CLIENT_ID',
-        'SPOTIFY_CLIENT_SECRET'
+        'INTERNAL_API_KEY'
         // ENCRYPTION_KEY se eliminó porque vive en .env
     ];
 

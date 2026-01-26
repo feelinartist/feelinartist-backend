@@ -9,7 +9,6 @@ const redesSocialesData = [
     { nombre: 'Kick', urlBase: 'https://kick.com/', icono: 'https://cdn.simpleicons.org/kick/05FF00' },
     { nombre: 'Twitch', urlBase: 'https://twitch.tv/', icono: 'https://cdn.simpleicons.org/twitch/9146FF' },
     { nombre: 'Twitter (X)', urlBase: 'https://x.com/', icono: 'https://cdn.simpleicons.org/x/000000' },
-    { nombre: 'Spotify', urlBase: 'https://open.spotify.com/artist/', icono: 'https://cdn.simpleicons.org/spotify/1DB954' },
     { nombre: 'SoundCloud', urlBase: 'https://soundcloud.com/', icono: 'https://cdn.simpleicons.org/soundcloud/FF3300' },
     { nombre: 'Instagram', urlBase: 'https://instagram.com/', icono: 'https://cdn.simpleicons.org/instagram/E4405F' },
     { nombre: 'TikTok', urlBase: 'https://tiktok.com/@', icono: 'https://cdn.simpleicons.org/tiktok/FFFFFF' },
@@ -88,27 +87,6 @@ async function main() {
                 nombre: metodo.nombre,
                 icono: metodo.icono,
                 activo: true
-            }
-        });
-    }
-
-    console.log('   - Seeding Configuracion Sistema...');
-    const configs = [
-        { clave: 'MAX_FILE_SIZE', valor: '5242880', categoria: 'GENERAL', descripcion: 'Tamaño máximo de archivo en bytes (5MB)' },
-        { clave: 'ALLOWED_EXTENSIONS', valor: 'jpg,jpeg,png,webp', categoria: 'GENERAL', descripcion: 'Extensiones permitidas para imágenes' },
-        { clave: 'SYSTEM_CURRENCY', valor: 'PEN', categoria: 'PAYMENT', descripcion: 'Moneda por defecto del sistema' }
-    ];
-
-    for (const conf of configs) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (prisma as any).configuracionSistema.upsert({
-            where: { clave: conf.clave },
-            update: {},
-            create: {
-                clave: conf.clave,
-                valor: conf.valor,
-                categoria: conf.categoria,
-                descripcion: conf.descripcion
             }
         });
     }

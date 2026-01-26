@@ -2,17 +2,7 @@
 import { Request, Response } from "express";
 import { PrismaPedidoRepository } from "../../infrastructure/repositories/prisma-pedido-repository";
 import { EstadoPedidoCancion, PrismaClient } from "@prisma/client";
-
-interface SpotifyTrack {
-    artists: { id: string }[];
-}
-
-interface SpotifyArtist {
-    genres?: string[];
-}
-
 import { SocketService } from '../../infrastructure/services/socket-service';
-import { SpotifyService } from '../../infrastructure/services/spotify-service';
 
 const prisma = new PrismaClient();
 
@@ -25,7 +15,7 @@ export class ControladorPedido {
 
     crearPedido = async (req: Request, res: Response) => {
         try {
-            const { eventoId, titulo, artista, usuarioId, spotifyId, nombreSolicitante } = req.body;
+            const { eventoId, titulo, artista, usuarioId, itunesId, nombreSolicitante, genero, imagenUrl, previewUrl } = req.body;
 
             if (!eventoId || !titulo) {
                 return res.status(400).json({ error: "EventoId y Título son requeridos" });
@@ -45,34 +35,16 @@ export class ControladorPedido {
                 return res.status(403).json({ error: "El artista no está recibiendo pedidos en este momento" });
             }
 
-            // Obtener género de Spotify si hay spotifyId
-            let genero: string | undefined;
-            if (spotifyId) {
-                try {
-                    // SpotifyService ya importado
-                    const spotifyService = new SpotifyService();
-
-                    const track = await spotifyService.getTrack(spotifyId) as unknown as SpotifyTrack;
-                    if (track?.artists?.[0]?.id) {
-                        const artistData = await spotifyService.getArtist(track.artists[0].id) as unknown as SpotifyArtist;
-                        if (artistData?.genres && artistData.genres.length > 0) {
-                            genero = artistData.genres.join(', ');
-                        }
-                    }
-                } catch (error) {
-                    console.error("Error fetching genre from Spotify:", error);
-                    // Continue without genre if Spotify fails
-                }
-            }
-
             const pedido = await this.pedidoRepository.crearPedido(
                 eventoId,
                 titulo,
                 artista,
                 usuarioId,
-                spotifyId,
+                itunesId,
                 nombreSolicitante,
-                genero
+                genero,
+                imagenUrl,
+                previewUrl
             );
 
             // Emitir evento por Socket.io
@@ -86,7 +58,8 @@ export class ControladorPedido {
             return res.status(201).json(pedido);
         } catch (error) {
             console.error("Error al crear pedido:", error);
-            return res.status(500).json({ error: "Error interno del servidor" });
+            const errorMessage = error instanceof Error ? error.message : "Error interno del servidor";
+            return res.status(500).json({ error: errorMessage });
         }
     };
 

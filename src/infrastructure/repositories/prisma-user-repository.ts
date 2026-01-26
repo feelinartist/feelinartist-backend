@@ -169,7 +169,8 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
         datosActualizacion.actualizadoPor = id;
 
         if (datos.perfilArtista) {
-            const { redesSociales, metodosDonacion, galeria, pagoQR, musicQR, nombreQR, urlPago, nombreUsuario, ...perfilArtistaData } = datos.perfilArtista;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { redesSociales, metodosDonacion, galeria, pagoQR, musicQR, nombreQR, urlPago, nombreUsuario: _nombreUsuario, ...perfilArtistaData } = datos.perfilArtista;
 
             // Explicitly handle lugaresConocidos to avoid spread loss
             const nestedUpdate: Record<string, unknown> = {
@@ -346,6 +347,12 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
             };
         }
 
+        // Fetch previous state for correct cache invalidation
+        const usuarioAnterior = await prisma.usuario.findUnique({
+            where: { id },
+            select: { nombreUsuario: true }
+        });
+
         const usuario = await prisma.usuario.update({
             where: { id },
             data: datosActualizacion,
@@ -362,6 +369,19 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
                 perfilDiscoteca: true
             }
         });
+
+        // 🧹 Cache Invalidation: Delete old and new username keys
+        try {
+            if (usuarioAnterior?.nombreUsuario) {
+                await redisService.del(`user:profile:${usuarioAnterior.nombreUsuario}`);
+            }
+            if (usuario.nombreUsuario && usuario.nombreUsuario !== usuarioAnterior?.nombreUsuario) {
+                await redisService.del(`user:profile:${usuario.nombreUsuario}`);
+            }
+        } catch (err) {
+            console.error('Error invalidating cache:', err);
+        }
+
         return this.mapToEntity(usuario);
     }
 

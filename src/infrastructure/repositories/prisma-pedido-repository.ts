@@ -9,9 +9,11 @@ export class PrismaPedidoRepository {
         titulo: string,
         artista?: string,
         usuarioId?: string,
-        spotifyId?: string,
+        itunesId?: string,
         nombreSolicitante?: string,
-        genero?: string
+        genero?: string,
+        imagenUrl?: string,
+        previewUrl?: string
     ) {
         // Obtener perfilArtistaId del evento
         const evento = await prisma.evento.findUnique({
@@ -27,7 +29,7 @@ export class PrismaPedidoRepository {
                 titulo,
                 artista,
                 usuarioId,
-                spotifyId,
+                itunesId,
                 nombreSolicitante,
                 genero,
                 estado: "PENDIENTE",
@@ -40,89 +42,43 @@ export class PrismaPedidoRepository {
             await redisService.incr(`event:${eventoId}:orders:total`);
             await redisService.incr('stats:orders:total');
 
-            // Identificador único para la canción (Spotify ID o combinación de nombre)
-            const songIdentifier = spotifyId || `${titulo.toLowerCase().trim()}:${artista?.toLowerCase().trim()}`;
-
-            // Creamos el objeto de la canción para el Ranking (sin IDs únicos de pedido para permitir agrupación)
+            // Identificador único para la canción (iTunes ID o combinación de nombre)
             const songData = JSON.stringify({
                 titulo,
                 artista,
-                spotifyId,
-                genero // Se actualizará si se encuentra después
+                itunesId,
+                genero,
+                imagenUrl,
+                previewUrl
             });
 
             // 🚀 INCREMENTAR VOTOS: En Redis, el Sorted Set 'ranking' guardará la canción
-            // y su puntuación será el número de personas que la han pedido.
             await redisService.zincrby(`event:${eventoId}:popularity_ranking`, 1, songData);
 
-            // También mantenemos la cola cronológica para el historial rápido si fuera necesario
+            // Cola cronológica
             const liveOrderData = JSON.stringify({
                 id: pedido.id,
                 titulo: pedido.titulo,
                 artista: pedido.artista,
                 nombreSolicitante: pedido.nombreSolicitante,
-                spotifyId: pedido.spotifyId,
-                creadoEn: pedido.creadoEn
+                itunesId: pedido.itunesId,
+                creadoEn: pedido.creadoEn,
+                imagenUrl,
+                previewUrl
             });
             await redisService.zadd(`event:${eventoId}:live_queue`, Date.now(), liveOrderData);
+
+            // 🏷️ Shadow Key for Cleanup: Store the exact payload used in ZADD
+            // This allows us to perform a clean ZREM later without guessing the string
+            await redisService.set(`request:payload:${pedido.id}`, liveOrderData, 86400); // 24h TTL
 
         } catch (err) {
             console.warn('Error updating popularity ranking in Redis:', err);
         }
 
-        // 🔍 Intentar obtener género exacto si falta y es de Spotify
-        if (spotifyId && !genero) {
-            try {
-                const { SpotifyService } = await import('../../infrastructure/services/spotify-service');
-                const spotify = new SpotifyService();
-                const track = await spotify.getTrack(spotifyId);
-                const trackData = track as { artists?: Array<{ id: string }> };
-                const mainArtist = trackData?.artists?.[0]?.id;
-
-                if (mainArtist) {
-                    const genres = await spotify.getArtistGenres(mainArtist);
-                    if (genres.length > 0) {
-                        const exactGenre = genres[0]; // Tomamos el primer género principal
-                        await prisma.pedidoCancion.update({
-                            where: { id: pedido.id },
-                            data: { genero: exactGenre }
-                        });
-                        console.log(`[Redis/Spotify] Género exacto encontrado: ${exactGenre}`);
-                    }
-                }
-            } catch (error) {
-                console.error("Error buscando género exacto:", error);
-            }
-        }
-
-        // Actualizar contadores en EstadisticasCancion
-        if (titulo && artista) {
-            try {
-                // Solo crear el registro, los contadores se incrementan al cambiar estado
-                await prisma.estadisticasCancion.upsert({
-                    where: {
-                        spotifyId_perfilArtistaId: {
-                            spotifyId: spotifyId || `manual_${titulo}_${artista}`,
-                            perfilArtistaId: evento.perfilArtistaId
-                        }
-                    },
-                    create: {
-                        spotifyId: spotifyId || `manual_${titulo}_${artista}`,
-                        titulo,
-                        artista,
-                        genero,
-                        perfilArtistaId: evento.perfilArtistaId
-                    },
-                    update: {
-                        // Actualizar género si viene de Spotify y no estaba
-                        ...(genero && { genero })
-                    }
-                });
-            } catch (error) {
-                console.error("Error actualizando estadísticas:", error);
-                // No fallamos el pedido si falla la estadística
-            }
-        }
+        // 5. Async Stats: We don't write to MySQL EstadisticasCancion here anymore.
+        // We rely on 'actualizarEstado' to increment counters in Redis buffer.
+        // The song is already in Redis 'popularity_ranking' (ZSET) for immediate top lists.
 
         return pedido;
     }
@@ -172,7 +128,7 @@ export class PrismaPedidoRepository {
             where: { id },
             select: {
                 estado: true,
-                spotifyId: true,
+                itunesId: true,
                 titulo: true,
                 artista: true,
                 perfilArtistaId: true,
@@ -196,102 +152,71 @@ export class PrismaPedidoRepository {
             try {
                 // Si ya no es PENDIENTE, lo quitamos de la cola viva y del ranking de Redis
                 if (estado !== 'PENDIENTE') {
-                    // 1. Quitar de la cola cronológica
-                    const cronQueueItem = JSON.stringify({
-                        id: id,
-                        titulo: pedidoAnterior.titulo,
-                        artista: pedidoAnterior.artista,
-                        nombreSolicitante: pedidoAnterior.nombreSolicitante,
-                        spotifyId: pedidoAnterior.spotifyId,
-                        creadoEn: pedidoAnterior.creadoEn
-                    });
-                    await redisService.zrem(`event:${pedidoAnterior.eventoId}:live_queue`, cronQueueItem);
+                    // 1. Quitar de la cola cronológica usando Shadow Key
+                    const shadowKey = `request:payload:${id}`;
+                    const payload = await redisService.get(shadowKey);
 
-                    // 2. Quitar del ranking de popularidad (agrupado)
-                    const popularityItem = JSON.stringify({
-                        titulo: pedidoAnterior.titulo,
-                        artista: pedidoAnterior.artista,
-                        spotifyId: pedidoAnterior.spotifyId,
-                        genero: pedidoAnterior.genero
-                    });
-                    await redisService.zrem(`event:${pedidoAnterior.eventoId}:popularity_ranking`, popularityItem);
+                    if (payload) {
+                        await redisService.zrem(`event:${pedidoAnterior.eventoId}:live_queue`, payload);
+                        await redisService.del(shadowKey); // Cleanup shadow key
+                    } else {
+                        // Fallback: If payload lost (TTL), we might have a ghost in the queue.
+                        // The frontend usually filters by ID, but ZREM is cleaner.
+                        console.warn(`[Redis] Shadow key missing for cleanup: ${shadowKey}`);
+                    }
+
+                    // 2. Quitar del ranking de popularidad?
+                    // No, usually we want to keep it in the "Most Voted" list even if processed?
+                    // User requirement: "aceptar, rechazar". Usually "Accepted" songs might stay in "Now Playing" or similar.
+                    // "Rejected" definitely go away.
+                    // For now, let's leave Ranking as is (it's "Popularity", not "Pending List").
                 }
 
-                const estadoAnterior = pedidoAnterior.estado;
-                const estadoNuevo = estado;
-
-                // Keys para Redis
-                const artistStatsKey = `stats:artist:${pedidoAnterior.perfilArtistaId}`;
-                const eventStatsKey = `stats:event:${pedidoAnterior.eventoId}`;
-
-                // Decrementar estado anterior en Redis si existía
-                if (estadoAnterior === 'ACEPTADO') {
-                    await redisService.decr(`${artistStatsKey}:accepted`);
-                    await redisService.decr(`${eventStatsKey}:accepted`);
-                } else if (estadoAnterior === 'RECHAZADO') {
-                    await redisService.decr(`${artistStatsKey}:rejected`);
-                    await redisService.decr(`${eventStatsKey}:rejected`);
-                }
-
-                // Incrementar nuevo estado en Redis
-                if (estadoNuevo === 'ACEPTADO') {
-                    await redisService.incr(`${artistStatsKey}:accepted`);
-                    await redisService.incr(`${eventStatsKey}:accepted`);
-                } else if (estadoNuevo === 'RECHAZADO') {
-                    await redisService.incr(`${artistStatsKey}:rejected`);
-                    await redisService.incr(`${eventStatsKey}:rejected`);
-                }
+                // (Old synchronous Redis counters removed in favor of Async Stats below)
             } catch (error) {
-                console.warn("Error actualizando contadores en Redis:", error);
+                console.warn("Error cleaning up Redis queue:", error);
             }
         }
 
-        // 📊 Actualizar contadores en EstadisticasCancion (Prisma)
+        // 🛡️ REFACTOR: Write-Behind Pattern using Redis Buffer
+        // Instead of writing to MySQL immediately, we increment counters in Redis.
+        // The Worker (stats-sync-service) will persist this later.
+
         if (pedidoAnterior.titulo && pedidoAnterior.artista && pedidoAnterior.perfilArtistaId) {
             try {
-                const estadoAnterior = pedidoAnterior.estado;
+                // Use a stable ID (iTunes ID or generated one)
+                const itunesKey = pedidoAnterior.itunesId || `manual_${pedidoAnterior.titulo}_${pedidoAnterior.artista}`;
+                const bufferKey = `stats:buffer:${itunesKey}`;
+
+                // Metadata to allow the worker to create the record if missing
+                // Use HSETNX to set these only if they don't exist (save bandwidth/ops)
+                await redisService.hsetnx(bufferKey, 'perfilArtistaId', pedidoAnterior.perfilArtistaId);
+                await redisService.hsetnx(bufferKey, 'titulo', pedidoAnterior.titulo);
+                await redisService.hsetnx(bufferKey, 'artista', pedidoAnterior.artista);
+                if (pedidoAnterior.genero) await redisService.hsetnx(bufferKey, 'genero', pedidoAnterior.genero);
+
                 const estadoNuevo = estado;
-                const spotifyKey = pedidoAnterior.spotifyId || `manual_${pedidoAnterior.titulo}_${pedidoAnterior.artista}`;
+                const estadoAnterior = pedidoAnterior.estado;
 
-                // Decrementar contador del estado anterior
+                // Decrement old status (if applicable) -> To keep stats accurate if I switch Accept->Reject
+                // Note: The worker handles negatives? Yes.
                 if (estadoAnterior === 'ACEPTADO') {
-                    await prisma.estadisticasCancion.updateMany({
-                        where: {
-                            spotifyId: spotifyKey,
-                            perfilArtistaId: pedidoAnterior.perfilArtistaId
-                        },
-                        data: { totalAceptados: { decrement: 1 } }
-                    });
+                    await redisService.hincrby(bufferKey, 'accepted', -1);
                 } else if (estadoAnterior === 'RECHAZADO') {
-                    await prisma.estadisticasCancion.updateMany({
-                        where: {
-                            spotifyId: spotifyKey,
-                            perfilArtistaId: pedidoAnterior.perfilArtistaId
-                        },
-                        data: { totalRechazados: { decrement: 1 } }
-                    });
+                    await redisService.hincrby(bufferKey, 'rejected', -1);
                 }
 
-                // Incrementar contador del nuevo estado
+                // Increment new status
                 if (estadoNuevo === 'ACEPTADO') {
-                    await prisma.estadisticasCancion.updateMany({
-                        where: {
-                            spotifyId: spotifyKey,
-                            perfilArtistaId: pedidoAnterior.perfilArtistaId
-                        },
-                        data: { totalAceptados: { increment: 1 } }
-                    });
+                    await redisService.hincrby(bufferKey, 'accepted', 1);
                 } else if (estadoNuevo === 'RECHAZADO') {
-                    await prisma.estadisticasCancion.updateMany({
-                        where: {
-                            spotifyId: spotifyKey,
-                            perfilArtistaId: pedidoAnterior.perfilArtistaId
-                        },
-                        data: { totalRechazados: { increment: 1 } }
-                    });
+                    await redisService.hincrby(bufferKey, 'rejected', 1);
                 }
+
             } catch (error) {
-                console.error("Error actualizando contadores de estadísticas en DB:", error);
+                console.error("Error buffering stats to Redis:", error);
+                // Fallback: If Redis fails, we COULD try direct DB write, but let's keep it simple for now.
+                // Critical failure in Redis means stats might lag, but order processing continues.
             }
         }
 

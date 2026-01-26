@@ -185,6 +185,59 @@ export class RedisService {
     }
 
     /**
+     * Increment the integer value of a hash field by the given number
+     */
+    public async hincrby(key: string, field: string, increment: number): Promise<number | null> {
+        if (!this.client || !this.isConnected) return null;
+        try {
+            return await this.client.hincrby(key, field, increment);
+        } catch (error) {
+            console.error(`Error in HINCRBY for key ${key}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Get the value of a hash field
+     */
+    public async hget(key: string, field: string): Promise<string | null> {
+        if (!this.client || !this.isConnected) return null;
+        try {
+            return await this.client.hget(key, field);
+        } catch (error) {
+            console.error(`Error in HGET for key ${key}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Set the value of a hash field, only if the field does not exist
+     */
+    public async hsetnx(key: string, field: string, value: string): Promise<number | null> {
+        if (!this.client || !this.isConnected) return null;
+        try {
+            return await this.client.hsetnx(key, field, value);
+        } catch (error) {
+            console.error(`Error in HSETNX for key ${key}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Incrementally iterate the keys space
+     */
+    public async scan(cursor: string, ...args: string[]): Promise<[string, string[]]> {
+        if (!this.client || !this.isConnected) return ['0', []];
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return await this.client.scan(cursor, ...(args as any[]));
+        } catch (error) {
+            console.error(`Error in SCAN:`, error);
+            return ['0', []];
+        }
+    }
+
+    /**
      * Get the raw Redis client
      */
     public getClient(): Redis | null {

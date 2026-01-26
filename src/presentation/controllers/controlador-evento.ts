@@ -110,7 +110,7 @@ export class ControladorEvento {
                 // We need the resolved artistId for the room. The repository should ideally return it.
                 // For now, we'll fetch it if needed or assume the repo does its job.
                 // Let's use the result from the repository which we will update to include the id.
-                const resolvedArtistaId = (result as any).id || artistaId;
+                const resolvedArtistaId = (result as { id: string }).id || artistaId;
                 const roomName = `artist:${resolvedArtistaId}`;
 
                 console.log(`Socket: Emitting pedidos_status to room ${roomName}: ${activoBool}`);

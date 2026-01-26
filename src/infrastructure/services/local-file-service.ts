@@ -1,7 +1,7 @@
 import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
-import { configService } from './config-service';
+
 
 export class LocalFileService {
     private uploadDir: string;
@@ -33,7 +33,7 @@ export class LocalFileService {
     async uploadBase64Image(base64Image: string, userId: string, type: 'gallery' | 'payment' | 'profile' | 'music', filename?: string): Promise<{ url: string; publicId: string }> {
         try {
             // 1. Remove header data:image/jpeg;base64,
-            const matches = base64Image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+            const matches = base64Image.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
 
             if (!matches || matches.length !== 3) {
                 // If no header, assume raw base64
@@ -81,7 +81,7 @@ export class LocalFileService {
     async deleteImage(publicId: string): Promise<void> {
         try {
             // Prevent directory traversal attacks
-            const safePath = path.normalize(publicId).replace(/^(\.\.[\/\\])+/, '');
+            const safePath = path.normalize(publicId).replace(/^(\.\.[/\\])+/, '');
             const filePath = path.join(this.uploadDir, safePath + '.webp');
 
             if (fs.existsSync(filePath)) {

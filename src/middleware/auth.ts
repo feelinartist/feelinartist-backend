@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 
 // Extend Express Request to include user
 declare global {
+    // eslint-disable-next-line @typescript-eslint/no-namespace
     namespace Express {
         interface Request {
             user?: {
@@ -42,18 +43,12 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
         // Attach user info to request
         req.user = decoded;
         next();
-    } catch (error) {
-        if (error instanceof jwt.JsonWebTokenError) {
-            return res.status(401).json({ message: 'Token inválido' });
-        }
-        if (error instanceof jwt.TokenExpiredError) {
-            return res.status(401).json({ message: 'Token expirado' });
-        }
+    } catch {
         return res.status(401).json({ message: 'Error de autenticación' });
     }
 };
 
-export const roleGuard = (allowedRoles: string[]) => {
+export const roleGuard = (_allowedRoles: string[]) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
             if (!req.user?.email) {
@@ -64,7 +59,7 @@ export const roleGuard = (allowedRoles: string[]) => {
             // For now, we'll pass through and let the controller handle role checks
             // TODO: Implement role fetching from database
             next();
-        } catch (error) {
+        } catch {
             return res.status(403).json({ message: 'Acceso denegado' });
         }
     };

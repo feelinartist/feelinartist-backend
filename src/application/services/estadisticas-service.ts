@@ -96,15 +96,12 @@ export class EstadisticasService {
                 artista: true,
                 estado: true,
                 genero: true,
-                spotifyId: true
+                itunesId: true
             }
         });
 
         // Obtener estadísticas desde la tabla de contadores (RÁPIDO)
         // Obtener estadísticas desde la tabla de contadores (RÁPIDO) - Code removed as unused
-
-        // Mapear estadísticas por spotifyId
-        // Mapear estadísticas por spotifyId (Logic moved/removed)
 
         // Calcular totales
         const totalPedidos = pedidos.length;

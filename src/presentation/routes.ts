@@ -90,11 +90,6 @@ const controladorConfigSistema = new ControladorConfigSistema();
 import { ControladorConfigPublica } from './controllers/controlador-config-publica';
 const controladorConfigPublica = new ControladorConfigPublica();
 
-// Spotify / Music Routes
-import { ControladorSpotify } from './controllers/controlador-spotify';
-const controladorSpotify = new ControladorSpotify();
-router.get('/music/search', (req, res) => controladorSpotify.search(req, res));
-
 // Estadísticas Routes
 import { ControladorEstadisticas } from './controllers/controlador-estadisticas';
 const controladorEstadisticas = new ControladorEstadisticas();

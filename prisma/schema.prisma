@@ -155,10 +155,10 @@ model PedidoCancion {
   id                String              @id @default(uuid())
   eventoId          String
   usuarioId         String?             // Optional, for registered users
-  spotifyId         String?             // Optional
+  itunesId          String?             // Optional
   titulo            String?             // For manual entry
   artista           String?             // For manual entry
-  genero            String?             // Genre from Spotify or manual entry
+  genero            String?             // Genre from iTunes or manual entry
   nombreSolicitante String?
   estado            EstadoPedidoCancion @default(PENDIENTE)
   evento            Evento              @relation(fields: [eventoId], references: [id])
@@ -178,7 +178,7 @@ enum EstadoPedidoCancion {
 
 model EstadisticasCancion {
   id                String         @id @default(uuid())
-  spotifyId         String?
+  itunesId          String?
   titulo            String
   artista           String
   genero            String?
@@ -196,7 +196,7 @@ model EstadisticasCancion {
   actualizadoEn     DateTime       @updatedAt
   
   // Índice único por canción y artista
-  @@unique([spotifyId, perfilArtistaId])
+  @@unique([itunesId, perfilArtistaId])
   @@index([perfilArtistaId])
 }
 
