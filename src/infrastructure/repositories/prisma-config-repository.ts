@@ -1,13 +1,10 @@
-import { PrismaClient, RedSocial, MetodoDonacion } from '@prisma/client';
+import { RedSocial, MetodoDonacion } from '@prisma/client';
 import { RepositorioConfig } from '../../domain/repositories/config-repository';
 import { Rol } from '../../domain/entities/user';
+import prisma from '../database/prisma';
 
 export class RepositorioConfigPrisma implements RepositorioConfig {
-    private readonly prisma: PrismaClient;
-
-    constructor() {
-        this.prisma = new PrismaClient();
-    }
+    private readonly prisma = prisma;
 
     // Redes Sociales
     async listarRedesSociales(): Promise<RedSocial[]> {

@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../database/prisma";
 import { EncryptionService } from "../services/encryption-service";
 
-const prisma = new PrismaClient();
 const encryptionService = new EncryptionService();
 
 interface ConfiguracionDTO {

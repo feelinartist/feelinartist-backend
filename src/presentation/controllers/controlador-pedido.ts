@@ -1,10 +1,9 @@
 
 import { Request, Response } from "express";
 import { PrismaPedidoRepository } from "../../infrastructure/repositories/prisma-pedido-repository";
-import { EstadoPedidoCancion, PrismaClient } from "@prisma/client";
+import { EstadoPedidoCancion } from "@prisma/client";
+import prisma from "../../infrastructure/database/prisma";
 import { SocketService } from '../../infrastructure/services/socket-service';
-
-const prisma = new PrismaClient();
 
 export class ControladorPedido {
     private readonly pedidoRepository: PrismaPedidoRepository;

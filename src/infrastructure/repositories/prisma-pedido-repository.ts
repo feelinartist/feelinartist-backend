@@ -1,7 +1,6 @@
-import { PrismaClient, EstadoPedidoCancion } from "@prisma/client";
+import { EstadoPedidoCancion } from "@prisma/client";
+import prisma from "../database/prisma";
 import { redisService } from "../services/redis-service";
-
-const prisma = new PrismaClient();
 
 export class PrismaPedidoRepository {
     async crearPedido(datos: {

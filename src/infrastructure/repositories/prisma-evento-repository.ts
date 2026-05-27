@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../database/prisma";
 import { redisService } from "../services/redis-service";
-
-const prisma = new PrismaClient();
 
 export class PrismaEventoRepository {
     async crearEvento(

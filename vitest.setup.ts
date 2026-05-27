@@ -1,5 +1,9 @@
 import { vi } from 'vitest';
 
+if (!process.env.DATABASE_URL && process.env.NODE_ENV === 'test') {
+    process.env.DATABASE_URL = 'mysql://test:test@127.0.0.1:3306/test';
+}
+
 // Global mock for Prisma Client to prevent connection errors in tests
 vi.mock('@prisma/client', () => {
     class MockPrismaClient {
