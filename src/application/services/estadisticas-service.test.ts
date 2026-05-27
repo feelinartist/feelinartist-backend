@@ -52,6 +52,43 @@ describe('EstadisticasService', () => {
         await expect(service.obtenerEstadisticasEvento('event-unknown')).rejects.toThrow('Evento no encontrado');
     });
 
+    it('should handle event statistics with zero requests', async () => {
+        vi.mocked(prisma.evento.findUnique).mockResolvedValue({
+            id: 'event-empty',
+            titulo: 'Empty Event',
+            perfilArtistaId: 'artist-456'
+        } as any);
+
+        vi.mocked(prisma.pedidoCancion.findMany).mockResolvedValue([]);
+
+        const stats = await service.obtenerEstadisticasEvento('event-empty');
+        expect(stats.totalPedidos).toBe(0);
+        expect(stats.tasaAceptacion).toBe(0);
+        expect(stats.generosPorConteo).toEqual([]);
+        expect(stats.topCanciones).toEqual([]);
+        expect(stats.topAceptadas).toEqual([]);
+        expect(stats.topRechazadas).toEqual([]);
+    });
+
+    it('should handle event statistics with missing titles, artists, and genres', async () => {
+        vi.mocked(prisma.evento.findUnique).mockResolvedValue({
+            id: 'event-edge',
+            titulo: 'Edge Event',
+            perfilArtistaId: 'artist-456'
+        } as any);
+
+        vi.mocked(prisma.pedidoCancion.findMany).mockResolvedValue([
+            { titulo: '', artista: '', estado: 'ACEPTADO', genero: '', itunesId: 'itunes-1' },
+            { titulo: undefined, artista: undefined, estado: 'RECHAZADO', genero: undefined, itunesId: 'itunes-2' },
+        ] as any);
+
+        const stats = await service.obtenerEstadisticasEvento('event-edge');
+        expect(stats.totalPedidos).toBe(2);
+        expect(stats.generosPorConteo).toEqual([]);
+        expect(stats.topCanciones[0].titulo).toBe('Sin título');
+        expect(stats.topCanciones[0].artista).toBe('Desconocido');
+    });
+
     it('should retrieve statistics for an artist successfully', async () => {
         // Mock finished events lookup
         vi.mocked(prisma.evento.findMany).mockResolvedValue([
@@ -107,6 +144,58 @@ describe('EstadisticasService', () => {
         expect(stats.totalPedidos).toBe(0);
     });
 
+    it('should handle artist statistics with zero accepted and rejected requests', async () => {
+        vi.mocked(prisma.evento.findMany).mockResolvedValue([
+            { id: 'event-1', titulo: 'Concert A', horaInicio: new Date('2026-05-26T20:00:00Z') }
+        ] as any);
+
+        // Mock groupBy totals with empty results (total accepted + rejected = 0)
+        vi.mocked(prisma.pedidoCancion.groupBy).mockResolvedValueOnce([]);
+        vi.mocked(prisma.pedidoCancion.groupBy).mockResolvedValueOnce([]);
+        vi.mocked(prisma.pedidoCancion.groupBy).mockResolvedValueOnce([]);
+
+        const stats = await service.obtenerEstadisticasArtista('artist-zero-requests');
+
+        expect(stats.totalPedidos).toBe(0);
+        expect(stats.tasaAceptacion).toBe(0);
+        expect(stats.generosPorConteo).toEqual([]);
+        expect(stats.topCanciones).toEqual([]);
+        expect(stats.eventosMasActivos).toEqual([]);
+    });
+
+    it('should handle artist statistics with missing statuses and empty comma-separated genres', async () => {
+        vi.mocked(prisma.evento.findMany).mockResolvedValue([
+            { id: 'event-1', titulo: 'Concert A', horaInicio: new Date('2026-05-26T20:00:00Z') }
+        ] as any);
+
+        vi.mocked(prisma.pedidoCancion.groupBy).mockResolvedValueOnce([
+            { estado: 'ACEPTADO', _count: { id: 1 } }
+        ]);
+
+        vi.mocked(prisma.pedidoCancion.groupBy).mockResolvedValueOnce([
+            { titulo: '', artista: '', genero: '', estado: 'PENDIENTE', _count: { id: 2 } },
+            { titulo: 'A', artista: 'B', genero: 'Rock, , Jazz', estado: 'ACEPTADO', _count: { id: 1 } }
+        ] as any);
+
+        vi.mocked(prisma.pedidoCancion.groupBy).mockResolvedValueOnce([
+            { eventoId: 'event-nonexistent', _count: { id: 5 } }
+        ] as any);
+
+        const stats = await service.obtenerEstadisticasArtista('artist-edge');
+
+        expect(stats.totalPedidos).toBe(1);
+        expect(stats.totalAceptados).toBe(1);
+        expect(stats.totalRechazados).toBe(0);
+        expect(stats.totalPendientes).toBe(0);
+        expect(stats.tasaAceptacion).toBe(100);
+        expect(stats.generosPorConteo).toEqual([
+            { genero: 'Rock', conteo: 1, porcentaje: 100 },
+            { genero: 'Jazz', conteo: 1, porcentaje: 100 }
+        ]);
+        expect(stats.topCanciones).toHaveLength(2);
+        expect(stats.eventosMasActivos).toEqual([]);
+    });
+
     it('should get detail of song requests for artist with pagination and sorting', async () => {
         vi.mocked(prisma.evento.findMany).mockResolvedValue([
             { id: 'event-1' }
@@ -155,10 +244,20 @@ describe('EstadisticasService', () => {
         expect(result.canciones[0].artista).toBe('UniqueArtistX');
     });
 
-    it('should sort by aceptadas and rechazadas', async () => {
+    it('should filter search results to empty when no query matches', async () => {
         vi.mocked(prisma.pedidoCancion.groupBy).mockResolvedValue([
-            { titulo: 'Song A', artista: 'Artist X', genero: 'Rock', estado: 'ACEPTADO', _count: { id: 5 }, _max: { creadoEn: new Date() } },
-            { titulo: 'Song B', artista: 'Artist Y', genero: 'Pop', estado: 'RECHAZADO', _count: { id: 10 }, _max: { creadoEn: new Date() } }
+            { titulo: 'Song A', artista: 'Artist X', genero: 'Rock', estado: 'ACEPTADO', _count: { id: 5 }, _max: { creadoEn: new Date() } }
+        ] as any);
+
+        const result = await service.obtenerDetalleCancionesEvento('event-123', 1, 2, 'Nonexistent', 'pedidas');
+        expect(result.total).toBe(0);
+        expect(result.canciones).toEqual([]);
+    });
+
+    it('should sort by aceptadas, rechazadas, recientes, and pedidas/default', async () => {
+        vi.mocked(prisma.pedidoCancion.groupBy).mockResolvedValue([
+            { titulo: 'Song A', artista: 'Artist X', genero: 'Rock', estado: 'ACEPTADO', _count: { id: 5 }, _max: { creadoEn: new Date('2026-05-26T21:00:00Z') } },
+            { titulo: 'Song B', artista: 'Artist Y', genero: 'Pop', estado: 'RECHAZADO', _count: { id: 10 }, _max: { creadoEn: new Date('2026-05-26T22:00:00Z') } }
         ] as any);
 
         // Sort by aceptadas: Song A has 5 accepted, Song B has 0 accepted (only rejected)
@@ -168,5 +267,41 @@ describe('EstadisticasService', () => {
         // Sort by rechazadas: Song B has 10 rejected, Song A has 0 rejected
         const sortRechazadas = await service.obtenerDetalleCancionesEvento('event-123', 1, 2, '', 'rechazadas');
         expect(sortRechazadas.canciones[0].titulo).toBe('Song B');
+
+        // Sort by recientes: Song B has 2026-05-26T22:00:00Z, Song A has 21:00:00Z
+        const sortRecientes = await service.obtenerDetalleCancionesEvento('event-123', 1, 2, '', 'recientes');
+        expect(sortRecientes.canciones[0].titulo).toBe('Song B');
+
+        // Sort by default (pedidas): Song B has 10 total, Song A has 5 total
+        const sortDefault = await service.obtenerDetalleCancionesEvento('event-123', 1, 2, '', 'pedidas');
+        expect(sortDefault.canciones[0].titulo).toBe('Song B');
+    });
+
+    it('should handle edge cases in processSongDetails for missing properties and Date updates', async () => {
+        const date1 = new Date('2026-05-26T21:00:00Z');
+        const date2 = new Date('2026-05-26T22:00:00Z');
+        
+        vi.mocked(prisma.pedidoCancion.groupBy).mockResolvedValue([
+            { titulo: null, artista: null, genero: null, estado: 'ACEPTADO', _count: { id: 3 }, _max: { creadoEn: date1 } },
+            // same key (null, null) with a later date to verify date check
+            { titulo: null, artista: null, genero: null, estado: 'RECHAZADO', _count: { id: 2 }, _max: { creadoEn: date2 } },
+            // same key (null, null) with an earlier date to verify path where date is NOT updated
+            { titulo: null, artista: null, genero: null, estado: 'ACEPTADO', _count: { id: 1 }, _max: { creadoEn: date1 } },
+            // same key (null, null) with no date to verify path where stat._max.creadoEn is missing
+            { titulo: null, artista: null, genero: null, estado: 'ACEPTADO', _count: { id: 1 }, _max: { creadoEn: null } },
+        ] as any);
+
+        const result = await service.obtenerDetalleCancionesEvento('event-123', 1, 10, '', 'pedidas');
+        
+        expect(result.total).toBe(1);
+        expect(result.canciones[0]).toEqual({
+            titulo: 'Desconocido',
+            artista: 'Desconocido',
+            genero: '',
+            total: 7,
+            aceptados: 5,
+            rechazados: 2,
+            ultimoPedido: date2
+        });
     });
 });

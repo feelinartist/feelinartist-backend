@@ -127,7 +127,7 @@ export class EstadisticasService {
             .map(([genero, conteo]) => ({
                 genero,
                 conteo,
-                porcentaje: totalPedidos > 0 ? Math.round((conteo / totalPedidos) * 100) : 0
+                porcentaje: Math.round((conteo / totalPedidos) * 100)
             }))
             .sort((a, b) => b.conteo - a.conteo)
             .slice(0, 5);
@@ -290,7 +290,7 @@ export class EstadisticasService {
             .map(([genero, conteo]) => ({
                 genero,
                 conteo,
-                porcentaje: (totalAceptados + totalRechazados) > 0 ? Math.round((conteo / (totalAceptados + totalRechazados)) * 100) : 0
+                porcentaje: Math.round((conteo / (totalAceptados + totalRechazados)) * 100)
             }))
             .sort((a, b) => b.conteo - a.conteo)
             .slice(0, 10);

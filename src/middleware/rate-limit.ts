@@ -4,8 +4,7 @@ import { redisService } from '../infrastructure/services/redis-service';
 import { Request, Response, NextFunction } from 'express';
 
 const windowMs = Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000;
-const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
-const devBypass = (req: Request, res: Response, next: NextFunction) => next();
+const isDev = () => !process.env.NODE_ENV || process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
 
 /**
  * A highly resilient rate limiter store that dynamically shifts between
@@ -67,7 +66,7 @@ class DynamicStore implements Store {
 }
 
 // General API rate limiter (Bypassed in development mode to prevent lockouts)
-export const generalLimiter = isDev ? devBypass : rateLimit({
+const generalRateLimiter = rateLimit({
     windowMs,
     max: Number(process.env.RATE_LIMIT_MAX_GLOBAL) || 100,
     message: 'Demasiadas solicitudes desde esta IP, por favor intenta de nuevo más tarde.',
@@ -76,9 +75,12 @@ export const generalLimiter = isDev ? devBypass : rateLimit({
     passOnStoreError: true,
     store: new DynamicStore('general'),
 });
+export const generalLimiter = (req: Request, res: Response, next: NextFunction) => {
+    return isDev() ? next() : generalRateLimiter(req, res, next);
+};
 
 // Strict rate limiter for authentication/sensitive endpoints (Bypassed in development mode)
-export const authLimiter = isDev ? devBypass : rateLimit({
+const authRateLimiter = rateLimit({
     windowMs,
     max: Number(process.env.RATE_LIMIT_MAX_AUTH) || 5,
     message: 'Demasiados intentos de autenticación, por favor intenta de nuevo en 15 minutos.',
@@ -88,9 +90,12 @@ export const authLimiter = isDev ? devBypass : rateLimit({
     passOnStoreError: true,
     store: new DynamicStore('auth'),
 });
+export const authLimiter = (req: Request, res: Response, next: NextFunction) => {
+    return isDev() ? next() : authRateLimiter(req, res, next);
+};
 
 // Moderate rate limiter for file uploads (Bypassed in development mode)
-export const uploadLimiter = isDev ? devBypass : rateLimit({
+const uploadRateLimiter = rateLimit({
     windowMs,
     max: Number(process.env.RATE_LIMIT_MAX_UPLOAD) || 20,
     message: 'Demasiadas cargas de archivos, por favor intenta de nuevo más tarde.',
@@ -99,3 +104,6 @@ export const uploadLimiter = isDev ? devBypass : rateLimit({
     passOnStoreError: true,
     store: new DynamicStore('upload'),
 });
+export const uploadLimiter = (req: Request, res: Response, next: NextFunction) => {
+    return isDev() ? next() : uploadRateLimiter(req, res, next);
+};

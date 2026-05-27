@@ -309,6 +309,18 @@ describe('ControladorUsuario', () => {
             expect(statusMock).toHaveBeenCalledWith(500);
             expect(jsonMock).toHaveBeenCalledWith({ message: 'Custom error message' });
         });
+
+        it('should return 500 with default message on error if error has no message', async () => {
+            req.body = { bloqueadorId: 'b1', bloqueadoId: 'b2' };
+            const errorWithoutMessage = new Error('');
+            delete (errorWithoutMessage as any).message;
+            (globalThis as any).mockBloquear.mockRejectedValue(errorWithoutMessage);
+
+            await controller.bloquearUsuario(req as Request, res as Response);
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Error interno del servidor' });
+        });
     });
 
     describe('desbloquearUsuario', () => {
@@ -410,6 +422,18 @@ describe('ControladorUsuario', () => {
             expect(statusMock).toHaveBeenCalledWith(400);
             expect(jsonMock).toHaveBeenCalledWith({ message: 'Migration failed' });
         });
+
+        it('should return 400 with fallback message if error has no message', async () => {
+            req.body = { usuarioId: 'user-1', nuevoRol: 'ARTISTA' };
+            const errorWithoutMessage = new Error('');
+            delete (errorWithoutMessage as any).message;
+            (globalThis as any).mockMigrarRol.mockRejectedValue(errorWithoutMessage);
+
+            await controller.migrarRol(req as Request, res as Response);
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Error al migrar rol' });
+        });
     });
 
     describe('actualizarRol', () => {
@@ -503,6 +527,28 @@ describe('ControladorUsuario', () => {
                 'discouser',
                 'Disco Club'
             );
+        });
+
+        it('should update role to ADMIN (fall-through role)', async () => {
+            req.body = {
+                correo: 'test@correo.com',
+                rol: 'ADMIN',
+                nombreUsuario: 'adminuser'
+            };
+            (globalThis as any).mockActualizarRolUsuario.mockResolvedValue({ id: 'user-1' });
+
+            await controller.actualizarRol(req as Request, res as Response);
+
+            expect((globalThis as any).mockActualizarRolUsuario).toHaveBeenCalledWith(
+                'test@correo.com',
+                'ADMIN',
+                undefined,
+                undefined,
+                undefined,
+                'adminuser',
+                undefined
+            );
+            expect(statusMock).toHaveBeenCalledWith(200);
         });
 
         it('should return 500 on error', async () => {
@@ -769,6 +815,32 @@ describe('ControladorUsuario', () => {
             expect(prisma.perfilDiscoteca.findUnique).toHaveBeenCalledWith({ where: { usuarioId: 'user-1' } });
             expect(prisma.$transaction).toHaveBeenCalled();
             expect(statusMock).toHaveBeenCalledWith(200);
+        });
+
+        it('should return 200 when artist profile does not exist', async () => {
+            (req as any).user = { id: 'user-1', rol: 'SUPER_ADMIN' };
+            req.params = { tipo: 'artista' };
+
+            vi.mocked(prisma.perfilArtista.findUnique).mockResolvedValue(null);
+
+            await controller.eliminarPerfilEspecifico(req as Request, res as Response);
+
+            expect(prisma.perfilArtista.findUnique).toHaveBeenCalledWith({ where: { usuarioId: 'user-1' } });
+            expect(statusMock).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Perfil eliminado con éxito' });
+        });
+
+        it('should return 200 when discoteca profile does not exist', async () => {
+            (req as any).user = { id: 'user-1', rol: 'ADMIN' };
+            req.params = { tipo: 'discoteca' };
+
+            vi.mocked(prisma.perfilDiscoteca.findUnique).mockResolvedValue(null);
+
+            await controller.eliminarPerfilEspecifico(req as Request, res as Response);
+
+            expect(prisma.perfilDiscoteca.findUnique).toHaveBeenCalledWith({ where: { usuarioId: 'user-1' } });
+            expect(statusMock).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Perfil eliminado con éxito' });
         });
 
         it('should return 400 on invalid profile type', async () => {
