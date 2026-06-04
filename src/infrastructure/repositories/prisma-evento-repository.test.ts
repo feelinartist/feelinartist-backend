@@ -8,7 +8,7 @@ vi.mock('../database/prisma', () => ({
     default: {
         perfilArtista: { findFirst: vi.fn(), update: vi.fn() },
         evento: { findFirst: vi.fn(), create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn(), count: vi.fn() },
-        pedidoCancion: { deleteMany: vi.fn(), groupBy: vi.fn() },
+        pedidoCancion: { deleteMany: vi.fn(), groupBy: vi.fn(), updateMany: vi.fn() },
         $transaction: vi.fn((cb) => cb(prisma)), // Simula transacción ejecutando el callback
     },
 }));
@@ -68,17 +68,34 @@ describe('PrismaEventoRepository', () => {
     });
 
     describe('finalizarEvento', () => {
-        it('debe finalizar un evento correctamente', async () => {
+        it('debe finalizar un evento correctamente con auto-rechazo de pendientes y limpieza Redis', async () => {
             const evento = { id: 'e1', perfilArtistaId: 'a1', perfilArtista: { usuarioId: 'u1', usuario: { nombreUsuario: 'test' } } };
             vi.mocked(prisma.evento.findUnique).mockResolvedValue(evento as any);
             vi.mocked(prisma.evento.update).mockResolvedValue(evento as any);
 
             const result = await repository.finalizarEvento('e1');
             expect(result.id).toBe('e1');
-            expect(prisma.pedidoCancion.deleteMany).toHaveBeenCalled();
+
+            // Verifica auto-rechazo de pendientes
+            expect(prisma.pedidoCancion.updateMany).toHaveBeenCalledWith({
+                where: { eventoId: 'e1', estado: 'PENDIENTE' },
+                data: { estado: 'RECHAZADO' }
+            });
+
+            expect(prisma.perfilArtista.update).toHaveBeenCalledWith({
+                where: { id: 'a1' },
+                data: { pedidosActivos: false }
+            });
+
+            // Verifica limpieza de Redis cache de artista
             expect(redisService.del).toHaveBeenCalledWith('artist:a1:active_event');
             expect(redisService.del).toHaveBeenCalledWith('artist:u1:active_event');
             expect(redisService.del).toHaveBeenCalledWith('user:profile:test');
+
+            // Verifica limpieza de colas Redis del evento
+            expect(redisService.del).toHaveBeenCalledWith('event:e1:live_queue');
+            expect(redisService.del).toHaveBeenCalledWith('event:e1:orders:total');
+            expect(redisService.del).toHaveBeenCalledWith('event:e1:popularity_ranking');
         });
 
         it('debe finalizar un evento correctamente si el artista o usuario son null', async () => {
@@ -88,13 +105,42 @@ describe('PrismaEventoRepository', () => {
 
             const result = await repository.finalizarEvento('e1');
             expect(result.id).toBe('e1');
+
+            // Aún debe auto-rechazar pendientes
+            expect(prisma.pedidoCancion.updateMany).toHaveBeenCalledWith({
+                where: { eventoId: 'e1', estado: 'PENDIENTE' },
+                data: { estado: 'RECHAZADO' }
+            });
+
             expect(prisma.perfilArtista.update).not.toHaveBeenCalled();
-            expect(redisService.del).not.toHaveBeenCalled();
+
+            // Solo limpieza de colas del evento (no artist/user keys)
+            expect(redisService.del).toHaveBeenCalledWith('event:e1:live_queue');
+            expect(redisService.del).toHaveBeenCalledWith('event:e1:orders:total');
+            expect(redisService.del).toHaveBeenCalledWith('event:e1:popularity_ranking');
         });
 
         it('debe fallar si el evento no existe', async () => {
             vi.mocked(prisma.evento.findUnique).mockResolvedValue(null);
             await expect(repository.finalizarEvento('e1')).rejects.toThrow('Evento no encontrado');
+        });
+
+        it('debe manejar errores de limpieza Redis del evento sin fallar', async () => {
+            const evento = { id: 'e1', perfilArtistaId: 'a1', perfilArtista: { usuarioId: 'u1', usuario: { nombreUsuario: 'test' } } };
+            vi.mocked(prisma.evento.findUnique).mockResolvedValue(evento as any);
+            vi.mocked(prisma.evento.update).mockResolvedValue(evento as any);
+
+            // Las primeras 3 llamadas a del (artist cache) pasan bien
+            // Las siguientes 3 (event queues) fallan
+            vi.mocked(redisService.del)
+                .mockResolvedValueOnce(undefined as any)
+                .mockResolvedValueOnce(undefined as any)
+                .mockResolvedValueOnce(undefined as any)
+                .mockRejectedValueOnce(new Error('Redis cleanup error'));
+
+            const result = await repository.finalizarEvento('e1');
+            expect(result.id).toBe('e1');
+            expect(console.warn).toHaveBeenCalledWith('Error limpiando Redis al finalizar evento:', expect.any(Error));
         });
     });
 

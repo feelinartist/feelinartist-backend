@@ -61,6 +61,7 @@ export class PrismaPedidoRepository {
                 id: pedido.id,
                 titulo: pedido.titulo,
                 artista: pedido.artista,
+                estado: pedido.estado,
                 nombreSolicitante: pedido.nombreSolicitante,
                 itunesId: pedido.itunesId,
                 creadoEn: pedido.creadoEn,
@@ -81,34 +82,20 @@ export class PrismaPedidoRepository {
     }
 
     async obtenerPedidosPorEvento(eventoId: string) {
-        // 1. Intentar obtener el Ranking de Popularidad de Redis
-        try {
-            const ranking = await redisService.zrevrangeWithScores(`event:${eventoId}:popularity_ranking`, 0, 49);
-            if (ranking.length > 0) {
-                return ranking.map(item => {
-                    const data = JSON.parse(item.member);
-                    return {
-                        ...data,
-                        votos: item.score,
-                        esRanking: true
-                    };
-                });
-            }
-        } catch (err) {
-            console.warn('Error fetching popularity ranking from Redis, falling back to live queue:', err);
-        }
-
-        // 2. Intentar obtener de la "Cola Viva" cronológica (Fallback 1)
+        // Intentar obtener la cola viva cronológica desde Redis
         try {
             const liveQueue = await redisService.zrevrange(`event:${eventoId}:live_queue`, 0, 99);
             if (liveQueue.length > 0) {
-                return liveQueue.map((item: string) => JSON.parse(item));
+                return liveQueue.map((item: string) => ({
+                    estado: 'PENDIENTE',
+                    ...JSON.parse(item)
+                }));
             }
         } catch (err) {
             console.warn('Error fetching live queue from Redis, falling back to DB:', err);
         }
 
-        // 3. Fallback a DB (Prisma)
+        // Fallback a DB (Prisma)
         return await prisma.pedidoCancion.findMany({
             where: {
                 eventoId,

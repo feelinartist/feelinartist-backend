@@ -567,12 +567,12 @@ describe('ControladorUsuario', () => {
         });
 
         it('should call use case and return availability', async () => {
-            req.body = { nombreUsuario: 'testuser' };
+            req.body = { nombreUsuario: 'testuser', usuarioId: 'user-1' };
             (globalThis as any).mockVerificarDisponibilidad.mockResolvedValue({ disponible: true });
 
             await controller.verificarNombreUsuario(req as Request, res as Response);
 
-            expect((globalThis as any).mockVerificarDisponibilidad).toHaveBeenCalledWith('testuser');
+            expect((globalThis as any).mockVerificarDisponibilidad).toHaveBeenCalledWith('testuser', 'user-1');
             expect(statusMock).toHaveBeenCalledWith(200);
         });
 

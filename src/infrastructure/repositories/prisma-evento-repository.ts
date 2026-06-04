@@ -72,7 +72,7 @@ export class PrismaEventoRepository {
     }
 
     async finalizarEvento(eventoId: string) {
-        return await prisma.$transaction(async (tx) => {
+        const resultado = await prisma.$transaction(async (tx) => {
             // First find the event to get the artist profile and user ID
             const eventoExistente = await tx.evento.findUnique({
                 where: { id: eventoId },
@@ -101,6 +101,17 @@ export class PrismaEventoRepository {
                 },
             });
 
+            // Auto-rechazar todos los pedidos pendientes del evento
+            await tx.pedidoCancion.updateMany({
+                where: {
+                    eventoId,
+                    estado: 'PENDIENTE'
+                },
+                data: {
+                    estado: 'RECHAZADO'
+                }
+            });
+
             if (evento.perfilArtistaId) {
                 await tx.perfilArtista.update({
                     where: { id: evento.perfilArtistaId },
@@ -108,24 +119,26 @@ export class PrismaEventoRepository {
                 });
             }
 
-            // Clean up: Delete unhandled requests
-            await tx.pedidoCancion.deleteMany({
-                where: {
-                    eventoId,
-                    estado: "PENDIENTE"
-                }
-            });
-
-            // 🛡️ Redis: Invalidar caché
-            if (artistaId) await redisService.del(`artist:${artistaId}:active_event`);
-            if (usuarioId) await redisService.del(`artist:${usuarioId}:active_event`);
-            
-            if (eventoExistente.perfilArtista?.usuario?.nombreUsuario) {
-                await redisService.del(`user:profile:${eventoExistente.perfilArtista.usuario.nombreUsuario}`);
-            }
-
-            return evento;
+            return { evento, artistaId, usuarioId, nombreUsuario: eventoExistente.perfilArtista?.usuario?.nombreUsuario };
         });
+
+        // Limpieza de Redis fuera de la transacción
+        const { evento, artistaId, usuarioId, nombreUsuario } = resultado;
+        
+        if (artistaId) await redisService.del(`artist:${artistaId}:active_event`);
+        if (usuarioId) await redisService.del(`artist:${usuarioId}:active_event`);
+        if (nombreUsuario) await redisService.del(`user:profile:${nombreUsuario}`);
+
+        // Limpiar colas de Redis del evento
+        try {
+            await redisService.del(`event:${eventoId}:live_queue`);
+            await redisService.del(`event:${eventoId}:orders:total`);
+            await redisService.del(`event:${eventoId}:popularity_ranking`);
+        } catch (err) {
+            console.warn('Error limpiando Redis al finalizar evento:', err);
+        }
+
+        return evento;
     }
 
     async obtenerEventoActivo(userIdOrArtistaId: string) {

@@ -39,6 +39,7 @@ describe('ActualizarRolUsuarioCasoUso', () => {
 
         mockRepositorioUsuario = {
             buscarPorCorreo: vi.fn(),
+            buscarPorNombreUsuario: vi.fn(),
             actualizar: vi.fn(),
         };
 
@@ -220,6 +221,48 @@ describe('ActualizarRolUsuarioCasoUso', () => {
 
         expect(mockGenerateQrCode).not.toHaveBeenCalled();
         expect(mockUploadBase64Image).not.toHaveBeenCalled();
+    });
+
+    it('debe lanzar error si el nombre de usuario ya está en uso por otro usuario', async () => {
+        const usuarioMock = {
+            id: 'user-123',
+            nombreUsuario: 'antiguo',
+            rol: { nombre: 'PUBLICO' },
+        };
+        mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(usuarioMock);
+        mockRepositorioUsuario.buscarPorNombreUsuario.mockResolvedValue({ id: 'otro-usuario-id', nombreUsuario: 'nuevo_username' });
+
+        await expect(casoUso.ejecutar('test@test.com', 'ARTISTA', undefined, undefined, undefined, 'nuevo_username'))
+            .rejects.toThrow('El nombre de usuario ya está en uso.');
+    });
+
+    it('no debe lanzar error si el nombre de usuario pertenece al mismo usuario', async () => {
+        const usuarioMock = {
+            id: 'user-123',
+            nombreUsuario: 'mismo_username',
+            rol: { nombre: 'PUBLICO' },
+        };
+        mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(usuarioMock);
+        mockRepositorioUsuario.buscarPorNombreUsuario.mockResolvedValue(usuarioMock);
+        mockRepositorioUsuario.actualizar.mockResolvedValue(usuarioMock);
+
+        const result = await casoUso.ejecutar('test@test.com', 'ARTISTA', undefined, undefined, undefined, 'mismo_username');
+        expect(result).toBeDefined();
+    });
+
+    it('debe generar un QR usando el nombreUsuario proporcionado si el usuario no tiene nombreUsuario registrado', async () => {
+        const usuarioMock = {
+            id: 'user-123',
+            nombreUsuario: undefined,
+            rol: { nombre: 'PUBLICO' },
+        };
+        mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(usuarioMock);
+        mockRepositorioUsuario.buscarPorNombreUsuario.mockResolvedValue(null);
+        mockRepositorioUsuario.actualizar.mockResolvedValue({ ...usuarioMock, nombreUsuario: 'nuevo_artista', rol: { nombre: 'ARTISTA' } });
+
+        await casoUso.ejecutar('test@test.com', 'ARTISTA', undefined, undefined, undefined, 'nuevo_artista');
+
+        expect(mockGenerateQrCode).toHaveBeenCalledWith('https://localhost:3000/artist/nuevo_artista/music');
     });
 
     it('debe validar updateRoleSchema correctamente con un rol inválido', () => {

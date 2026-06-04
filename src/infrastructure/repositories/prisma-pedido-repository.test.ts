@@ -143,47 +143,16 @@ describe('PrismaPedidoRepository', () => {
     });
 
     describe('obtenerPedidosPorEvento', () => {
-        it('should return parsed ranking list if popularity ranking in Redis exists', async () => {
-            const mockRanking = [
-                {
-                    member: JSON.stringify({
-                        titulo: 'Song A',
-                        artista: 'Artist A',
-                        itunesId: 'itunes-1',
-                    }),
-                    score: 5
-                }
-            ];
-            vi.mocked(redisService.zrevrangeWithScores).mockResolvedValue(mockRanking as any);
-
-            const result = await repository.obtenerPedidosPorEvento('evento-1');
-
-            expect(redisService.zrevrangeWithScores).toHaveBeenCalledWith('event:evento-1:popularity_ranking', 0, 49);
-            expect(result).toEqual([
-                {
-                    titulo: 'Song A',
-                    artista: 'Artist A',
-                    itunesId: 'itunes-1',
-                    votos: 5,
-                    esRanking: true
-                }
-            ]);
-            expect(redisService.zrevrange).not.toHaveBeenCalled();
-            expect(prisma.pedidoCancion.findMany).not.toHaveBeenCalled();
-        });
-
-        it('should return live queue if ranking fails and live queue exists', async () => {
+        it('should return live queue orders with pending state if Redis queue exists', async () => {
             const mockLiveQueue = [
                 JSON.stringify({
                     id: 'pedido-1',
                     titulo: 'Song A',
                     artista: 'Artist A',
+                    itunesId: 'itunes-1',
                 })
             ];
-
-            vi.mocked(redisService.zrevrangeWithScores).mockRejectedValue(new Error('Redis error'));
             vi.mocked(redisService.zrevrange).mockResolvedValue(mockLiveQueue as any);
-            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
             const result = await repository.obtenerPedidosPorEvento('evento-1');
 
@@ -191,11 +160,27 @@ describe('PrismaPedidoRepository', () => {
             expect(result).toEqual([
                 {
                     id: 'pedido-1',
+                    estado: 'PENDIENTE',
                     titulo: 'Song A',
                     artista: 'Artist A',
+                    itunesId: 'itunes-1',
                 }
             ]);
             expect(prisma.pedidoCancion.findMany).not.toHaveBeenCalled();
+        });
+
+        it('should fallback to DB if Redis read fails', async () => {
+            const mockDbResult = [
+                { id: 'pedido-1', titulo: 'Song A', estado: 'PENDIENTE' }
+            ];
+
+            vi.mocked(redisService.zrevrange).mockRejectedValue(new Error('Redis error'));
+            vi.mocked(prisma.pedidoCancion.findMany).mockResolvedValue(mockDbResult as any);
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            const result = await repository.obtenerPedidosPorEvento('evento-1');
+
+            expect(result).toEqual(mockDbResult);
             expect(warnSpy).toHaveBeenCalledTimes(1);
             warnSpy.mockRestore();
         });
@@ -205,7 +190,6 @@ describe('PrismaPedidoRepository', () => {
                 { id: 'pedido-1', titulo: 'Song A', estado: 'PENDIENTE' }
             ];
 
-            vi.mocked(redisService.zrevrangeWithScores).mockResolvedValue([]);
             vi.mocked(redisService.zrevrange).mockResolvedValue([]);
             vi.mocked(prisma.pedidoCancion.findMany).mockResolvedValue(mockDbResult as any);
 
@@ -222,22 +206,22 @@ describe('PrismaPedidoRepository', () => {
             expect(result).toEqual(mockDbResult);
         });
 
-        it('should fallback to DB if both Redis operations throw error', async () => {
+        it('should fallback to DB if Redis returns empty array', async () => {
             const mockDbResult = [
                 { id: 'pedido-1', titulo: 'Song A', estado: 'PENDIENTE' }
             ];
 
-            vi.mocked(redisService.zrevrangeWithScores).mockRejectedValue(new Error('error 1'));
-            vi.mocked(redisService.zrevrange).mockRejectedValue(new Error('error 2'));
+            vi.mocked(redisService.zrevrange).mockResolvedValue([]);
             vi.mocked(prisma.pedidoCancion.findMany).mockResolvedValue(mockDbResult as any);
-
-            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
             const result = await repository.obtenerPedidosPorEvento('evento-1');
 
+            expect(prisma.pedidoCancion.findMany).toHaveBeenCalledWith({
+                where: { eventoId: 'evento-1', estado: 'PENDIENTE' },
+                take: 100,
+                orderBy: { creadoEn: 'desc' }
+            });
             expect(result).toEqual(mockDbResult);
-            expect(warnSpy).toHaveBeenCalledTimes(2);
-            warnSpy.mockRestore();
         });
     });
 

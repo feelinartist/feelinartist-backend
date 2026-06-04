@@ -11,7 +11,6 @@ describe('CrearUsuarioCasoUso', () => {
 
         mockRepositorioUsuario = {
             buscarPorCorreo: vi.fn(),
-            buscarPorNombreUsuario: vi.fn(),
             crear: vi.fn(),
             actualizar: vi.fn(),
         };
@@ -156,87 +155,44 @@ describe('CrearUsuarioCasoUso', () => {
             expect(result.nombreUsuario).toBe('user_defined');
         });
 
-        it('debe autogenerar un nombreUsuario unico usando el nombre de pila si no se proporciona', async () => {
+        it('debe crear usuario sin nombreUsuario cuando no se proporciona', async () => {
             mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(null);
-            mockRepositorioUsuario.buscarPorNombreUsuario.mockResolvedValue(null);
             mockRepositorioUsuario.crear.mockResolvedValue({
                 correo: 'new@test.com',
-                nombreUsuario: 'juansanchez',
+                nombre: 'Juan Sanchez',
             });
 
-            await casoUso.ejecutar({
+            const result = await casoUso.ejecutar({
                 correo: 'new@test.com',
                 nombre: 'Juan Sanchez',
             } as any);
 
-            expect(mockRepositorioUsuario.buscarPorNombreUsuario).toHaveBeenCalledWith('juansanchez');
             expect(mockRepositorioUsuario.crear).toHaveBeenCalledWith({
                 correo: 'new@test.com',
                 nombre: 'Juan Sanchez',
-                nombreUsuario: 'juansanchez',
+            });
+            expect(result).toEqual({
+                correo: 'new@test.com',
+                nombre: 'Juan Sanchez',
             });
         });
 
-        it('debe autogenerar un nombreUsuario unico usando el correo si nombre no se proporciona', async () => {
+        it('debe crear usuario con solo correo', async () => {
             mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(null);
-            mockRepositorioUsuario.buscarPorNombreUsuario.mockResolvedValue(null);
             mockRepositorioUsuario.crear.mockResolvedValue({
-                correo: 'sanchez.juan@test.com',
-                nombreUsuario: 'sanchezjuan',
+                correo: 'solo@test.com',
             });
 
-            await casoUso.ejecutar({
-                correo: 'sanchez.juan@test.com',
+            const result = await casoUso.ejecutar({
+                correo: 'solo@test.com',
             } as any);
 
-            expect(mockRepositorioUsuario.buscarPorNombreUsuario).toHaveBeenCalledWith('sanchezjuan');
             expect(mockRepositorioUsuario.crear).toHaveBeenCalledWith({
-                correo: 'sanchez.juan@test.com',
-                nombreUsuario: 'sanchezjuan',
+                correo: 'solo@test.com',
             });
-        });
-
-        it('debe añadir un numero aleatorio y reintentar si el nombreUsuario ya esta en uso', async () => {
-            mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(null);
-            // Primero existe, luego ya no existe
-            mockRepositorioUsuario.buscarPorNombreUsuario
-                .mockResolvedValueOnce({ id: 'existing' })
-                .mockResolvedValueOnce(null);
-
-            mockRepositorioUsuario.crear.mockResolvedValue({
-                correo: 'new@test.com',
-                nombreUsuario: 'juan123',
+            expect(result).toEqual({
+                correo: 'solo@test.com',
             });
-
-            await casoUso.ejecutar({
-                correo: 'new@test.com',
-                nombre: 'Juan',
-            } as any);
-
-            expect(mockRepositorioUsuario.buscarPorNombreUsuario).toHaveBeenCalledTimes(2);
-            expect(mockRepositorioUsuario.crear).toHaveBeenCalledWith(expect.objectContaining({
-                nombreUsuario: expect.stringMatching(/^juan\d+$/),
-            }));
-        });
-
-        it('debe detenerse despues de 10 intentos fallidos de generar un nombreUsuario unico', async () => {
-            mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(null);
-            // Siempre existe
-            mockRepositorioUsuario.buscarPorNombreUsuario.mockResolvedValue({ id: 'existing' });
-
-            mockRepositorioUsuario.crear.mockResolvedValue({
-                correo: 'new@test.com',
-                nombreUsuario: 'juan-something',
-            });
-
-            await casoUso.ejecutar({
-                correo: 'new@test.com',
-                nombre: 'Juan',
-            } as any);
-
-            // 1 intento inicial de la base, más 9 intentos adicionales (total 10) antes de romper
-            expect(mockRepositorioUsuario.buscarPorNombreUsuario).toHaveBeenCalledTimes(10);
-            expect(mockRepositorioUsuario.crear).toHaveBeenCalled();
         });
     });
 });

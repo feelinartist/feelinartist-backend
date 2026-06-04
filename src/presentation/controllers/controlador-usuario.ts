@@ -219,13 +219,13 @@ export class ControladorUsuario {
 
     async verificarNombreUsuario(req: Request, res: Response) {
         try {
-            const { nombreUsuario } = req.body;
+            const { nombreUsuario, usuarioId } = req.body;
 
             if (!nombreUsuario) {
                 return res.status(400).json({ message: 'Nombre de usuario es requerido' });
             }
 
-            const resultado = await verificarDisponibilidadUsuarioCasoUso.ejecutar(nombreUsuario);
+            const resultado = await verificarDisponibilidadUsuarioCasoUso.ejecutar(nombreUsuario, usuarioId);
             return res.status(200).json(resultado);
         } catch (error) {
             console.error(error);

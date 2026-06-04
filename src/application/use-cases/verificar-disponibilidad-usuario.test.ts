@@ -42,6 +42,14 @@ describe('VerificarDisponibilidadUsuarioCasoUso', () => {
         expect(result).toEqual({ disponible: true, sugerencias: [] });
     });
 
+    it('debe retornar disponible true si el nombre de usuario pertenece al usuario actual', async () => {
+        mockRepositorioUsuario.buscarPorNombreUsuario.mockResolvedValue({ id: 'user-1' });
+
+        const result = await casoUso.ejecutar('juan', 'user-1');
+
+        expect(result).toEqual({ disponible: true, sugerencias: [] });
+    });
+
     it('debe retornar disponible false y sugerencias de los patrones preferidos si estan disponibles', async () => {
         // El primero existe, pero los siguientes sugeridos no
         mockRepositorioUsuario.buscarPorNombreUsuario.mockImplementation((username: string) => {

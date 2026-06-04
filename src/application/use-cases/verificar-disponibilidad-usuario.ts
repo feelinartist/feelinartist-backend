@@ -4,10 +4,10 @@ import crypto from 'node:crypto';
 export class VerificarDisponibilidadUsuarioCasoUso {
     constructor(private readonly repositorioUsuario: RepositorioUsuario) { }
 
-    async ejecutar(nombreUsuario: string): Promise<{ disponible: boolean; sugerencias: string[] }> {
+    async ejecutar(nombreUsuario: string, usuarioIdActual?: string): Promise<{ disponible: boolean; sugerencias: string[] }> {
         const usuarioExistente = await this.repositorioUsuario.buscarPorNombreUsuario(nombreUsuario);
 
-        if (!usuarioExistente) {
+        if (!usuarioExistente || usuarioExistente.id === usuarioIdActual) {
             return { disponible: true, sugerencias: [] };
         }
 
