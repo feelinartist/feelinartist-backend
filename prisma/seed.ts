@@ -1,13 +1,15 @@
 
 import { PrismaClient } from '@prisma/client';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+// import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 
 import 'dotenv/config';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error('Missing DATABASE_URL');
 
-const prisma = new PrismaClient({ adapter: new PrismaMariaDb(databaseUrl) });
+const prisma = new PrismaClient({ 
+    // adapter: new PrismaMariaDb(databaseUrl) 
+});
 
 const redesSocialesData = [
     { nombre: 'Facebook', urlBase: 'https://facebook.com/', icono: 'https://cdn.simpleicons.org/facebook/1877F2' },
