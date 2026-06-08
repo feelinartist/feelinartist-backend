@@ -20,7 +20,7 @@
     "@nestjs/platform-express": "^11.1.24",
     "@nestjs/platform-socket.io": "^11.1.24",
     "@nestjs/websockets": "^11.1.24",
-    "@prisma/client": "^7.8.0",
+    "@prisma/client": "6.16.2",
     "@types/node-fetch": "^2.6.13",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
@@ -31,6 +31,7 @@
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
     "node-fetch": "^3.3.2",
+    "prisma": "6.16.2",
     "qrcode": "^1.5.4",
     "rate-limit-redis": "^5.0.0",
     "reflect-metadata": "^0.2.2",
@@ -53,14 +54,10 @@
     "@vitest/coverage-v8": "4.1.7",
     "axios": "^1.16.1",
     "eslint": "^10.4.0",
-    "prisma": "^7.8.0",
     "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.7"
-  },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
   }
 }

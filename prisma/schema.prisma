@@ -4,30 +4,31 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Usuario {
-  id              String           @id @default(uuid())
-  correo          String           @unique
-  nombreUsuario   String?          @unique
-  nombre          String?
-  imagen          String?
-  rolId           String?
-  rol             Rol?             @relation(fields: [rolId], references: [id])
-  perfilArtista   PerfilArtista?
-  perfilPublico   PerfilPublico?
-  perfilDiscoteca PerfilDiscoteca?
-  creadoEn        DateTime         @default(now())
-  actualizadoEn   DateTime         @updatedAt
-  creadoPor       String?
+  id                         String           @id @default(uuid())
+  correo                     String           @unique
+  nombreUsuario              String?          @unique
+  nombre                     String?
+  imagen                     String?
+  rolId                      String?
+  rol                        Rol?             @relation(fields: [rolId], references: [id])
+  perfilArtista              PerfilArtista?
+  perfilPublico              PerfilPublico?
+  perfilDiscoteca            PerfilDiscoteca?
+  creadoEn                   DateTime         @default(now())
+  actualizadoEn              DateTime         @updatedAt
+  creadoPor                  String?
   actualizadoPor             String?
   ultimoCambioNombreUsuario  DateTime?
   ultimoCambioNombre         DateTime?
-  estadoCuenta               EstadoCuenta @default(ACTIVO)
+  estadoCuenta               EstadoCuenta     @default(ACTIVO)
   fechaEliminacionProgramada DateTime?
-  perfilCompletadoReconocido Boolean      @default(false)
-  bloqueados                 Bloqueo[]    @relation("Bloqueador")
-  bloqueadoPor               Bloqueo[]    @relation("Bloqueado")
+  perfilCompletadoReconocido Boolean          @default(false)
+  bloqueados                 Bloqueo[]        @relation("Bloqueador")
+  bloqueadoPor               Bloqueo[]        @relation("Bloqueado")
 }
 
 enum EstadoCuenta {
@@ -77,40 +78,41 @@ model Rol {
 }
 
 model PerfilArtista {
-  id               String            @id @default(uuid())
-  usuarioId        String            @unique
-  biografia        String?
+  id        String  @id @default(uuid())
+  usuarioId String  @unique
+  biografia String?
 
-  codigoTelefono   String?
-  numeroTelefono   String?
-  fechaInicio      DateTime?         @db.Date
-  tarifaPorHora    Decimal?
-  moneda           String?
-  lugaresConocidos Json?
-  redesSociales    ArtistaRedSocial[]
-  metodosDonacion  ArtistaDonacion[]
-  categoria        CategoriaArtista
-  ciudad           String?
-  pais             String?
-  zonaHoraria      String
-  musicQR          String? // Antes codigoQR - QR para pedir música
-  pagoQR           String? // Antes imagenQR - QR de pago (Yape/Plin)
-  nombreQR         String?
-  urlPago          String?
+  codigoTelefono        String?
+  numeroTelefono        String?
+  fechaInicio           DateTime?             @db.Date
+  tarifaPorHora         Decimal?
+  moneda                String?
+  lugaresConocidos      Json?
+  redesSociales         ArtistaRedSocial[]
+  metodosDonacion       ArtistaDonacion[]
+  categoria             CategoriaArtista
+  ciudad                String?
+  pais                  String?
+  zonaHoraria           String
+  musicQR               String? // Antes codigoQR - QR para pedir música
+  pagoQR                String? // Antes imagenQR - QR de pago (Yape/Plin)
+  nombreQR              String?
+  urlPago               String?
   urlYoutubeFavorito    String?
   urlSoundCloudFavorito String?
-  pedidosActivos   Boolean           @default(false)
-  galeria          GaleriaArtista[]
-  eventos          Evento[]
-  pedidosCanciones PedidoCancion[]
+  pedidosActivos        Boolean               @default(false)
+  galeria               GaleriaArtista[]
+  eventos               Evento[]
+  pedidosCanciones      PedidoCancion[]
   estadisticasCanciones EstadisticasCancion[]
-  seguidores       Seguidor[]
-  reservas         Reserva[]
-  usuario          Usuario           @relation(fields: [usuarioId], references: [id])
-  creadoEn         DateTime          @default(now())
-  actualizadoEn    DateTime          @updatedAt
-  creadoPor        String?
-  actualizadoPor   String?
+  seguidores            Seguidor[]
+  reservas              Reserva[]
+  contrataciones        Contratacion[]
+  usuario               Usuario               @relation(fields: [usuarioId], references: [id])
+  creadoEn              DateTime              @default(now())
+  actualizadoEn         DateTime              @updatedAt
+  creadoPor             String?
+  actualizadoPor        String?
 }
 
 enum CategoriaArtista {
@@ -153,11 +155,11 @@ model Evento {
 model PedidoCancion {
   id                String              @id @default(uuid())
   eventoId          String
-  usuarioId         String?             // Optional, for registered users
-  itunesId          String?             // Optional
-  titulo            String?             // For manual entry
-  artista           String?             // For manual entry
-  genero            String?             // Genre from iTunes or manual entry
+  usuarioId         String? // Optional, for registered users
+  itunesId          String? // Optional
+  titulo            String? // For manual entry
+  artista           String? // For manual entry
+  genero            String? // Genre from iTunes or manual entry
   nombreSolicitante String?
   estado            EstadoPedidoCancion @default(PENDIENTE)
   evento            Evento              @relation(fields: [eventoId], references: [id])
@@ -176,30 +178,28 @@ enum EstadoPedidoCancion {
 }
 
 model EstadisticasCancion {
-  id                String         @id @default(uuid())
-  itunesId          String?
-  titulo            String
-  artista           String
-  genero            String?
-  
+  id       String  @id @default(uuid())
+  itunesId String?
+  titulo   String
+  artista  String
+  genero   String?
+
   // Contadores por artista
-  perfilArtistaId   String
-  perfilArtista     PerfilArtista  @relation(fields: [perfilArtistaId], references: [id])
-  
+  perfilArtistaId String
+  perfilArtista   PerfilArtista @relation(fields: [perfilArtistaId], references: [id])
+
   // Contadores (total = aceptados + rechazados)
-  totalAceptados    Int            @default(0)
-  totalRechazados   Int            @default(0)
-  
+  totalAceptados  Int @default(0)
+  totalRechazados Int @default(0)
+
   // Metadata
-  creadoEn          DateTime       @default(now())
-  actualizadoEn     DateTime       @updatedAt
-  
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
   // Índice único por canción y artista
   @@unique([itunesId, perfilArtistaId])
   @@index([perfilArtistaId])
 }
-
-
 
 model Seguidor {
   id                String           @id @default(uuid())
@@ -253,17 +253,21 @@ model PerfilDiscoteca {
 }
 
 model Contratacion {
-  id                String             @id @default(uuid())
+  id                String @id @default(uuid())
   perfilDiscotecaId String
   perfilArtistaId   String
-  fechaEvento       DateTime
-  precio            Decimal
-  estado            EstadoContratacion @default(PENDIENTE)
-  perfilDiscoteca   PerfilDiscoteca    @relation(fields: [perfilDiscotecaId], references: [id])
-  creadoEn          DateTime           @default(now())
-  actualizadoEn     DateTime           @updatedAt
-  creadoPor         String?
-  actualizadoPor    String?
+
+  perfilDiscoteca PerfilDiscoteca @relation(fields: [perfilDiscotecaId], references: [id])
+  perfilArtista   PerfilArtista   @relation(fields: [perfilArtistaId], references: [id])
+
+  fechaEvento DateTime
+  precio      Decimal
+  estado      EstadoContratacion @default(PENDIENTE)
+
+  creadoEn       DateTime @default(now())
+  actualizadoEn  DateTime @updatedAt
+  creadoPor      String?
+  actualizadoPor String?
 }
 
 enum EstadoContratacion {
@@ -303,14 +307,14 @@ enum NivelLog {
 }
 
 model RedSocial {
-  id             String             @id @default(uuid())
-  nombre         String             @unique
-  urlBase        String
-  icono          String?
-  activo         Boolean            @default(true)
-  artistas       ArtistaRedSocial[]
-  creadoEn       DateTime           @default(now())
-  actualizadoEn  DateTime           @updatedAt
+  id            String             @id @default(uuid())
+  nombre        String             @unique
+  urlBase       String
+  icono         String?
+  activo        Boolean            @default(true)
+  artistas      ArtistaRedSocial[]
+  creadoEn      DateTime           @default(now())
+  actualizadoEn DateTime           @updatedAt
 }
 
 model ArtistaRedSocial {
@@ -329,13 +333,13 @@ model ArtistaRedSocial {
 }
 
 model MetodoDonacion {
-  id             String            @id @default(uuid())
-  nombre         String            @unique
-  icono          String?
-  activo         Boolean           @default(true)
-  artistas       ArtistaDonacion[]
-  creadoEn       DateTime          @default(now())
-  actualizadoEn  DateTime          @updatedAt
+  id            String            @id @default(uuid())
+  nombre        String            @unique
+  icono         String?
+  activo        Boolean           @default(true)
+  artistas      ArtistaDonacion[]
+  creadoEn      DateTime          @default(now())
+  actualizadoEn DateTime          @updatedAt
 }
 
 model ArtistaDonacion {
@@ -363,5 +367,3 @@ model ConfiguracionSistema {
   creadoPor      String?
   actualizadoPor String?
 }
-
-

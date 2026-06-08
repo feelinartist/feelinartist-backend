@@ -9,8 +9,6 @@ if (!databaseUrl) {
     throw new Error('Missing DATABASE_URL environment variable for Prisma.');
 }
 
-const prisma = new PrismaClient({
-    // adapter: new PrismaMariaDb(databaseUrl)
-});
+const prisma = new PrismaClient();
 
 export default prisma;
