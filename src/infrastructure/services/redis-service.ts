@@ -17,6 +17,20 @@ export class RedisService {
         return RedisService.instance;
     }
 
+    public async ensureConnection(): Promise<void> {
+    if (this.isConnected) return;
+    
+    // Espera hasta que el cliente esté listo o falle
+    return new Promise((resolve, reject) => {
+        if (this.client) {
+            this.client.once('connect', () => resolve());
+            this.client.once('error', (err) => reject(err));
+        } else {
+            reject(new Error("Redis client not initialized"));
+        }
+    });
+}
+
     private async initializeClient() {
         // Read REDIS_URL from environment variables
         const redisUrl = process.env.REDIS_URL;
@@ -26,10 +40,25 @@ export class RedisService {
             return;
         }
 
-        try {
+        try 
+            // {
+            // this.client = new Redis(redisUrl, {
+            //     maxRetriesPerRequest: 1,
+            //     enableOfflineQueue: false, // Don't buffer commands if Redis is offline
+            //     retryStrategy: (times) => {
+            //         if (times > 3) {
+            //             console.warn('⚠️ Could not connect to Redis. Retrying in 5s...');
+            //             return 5000;
+            //         }
+            //         return Math.min(times * 50, 2000);
+            //     }
+            // });
+            {
             this.client = new Redis(redisUrl, {
+                // HABILITAR TLS PARA UPSTASH
+                tls: {}, 
                 maxRetriesPerRequest: 1,
-                enableOfflineQueue: false, // Don't buffer commands if Redis is offline
+                enableOfflineQueue: false,
                 retryStrategy: (times) => {
                     if (times > 3) {
                         console.warn('⚠️ Could not connect to Redis. Retrying in 5s...');
