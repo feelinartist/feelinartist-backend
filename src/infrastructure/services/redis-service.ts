@@ -1,4 +1,7 @@
 import Redis from 'ioredis';
+import { LoggerService } from './logger-service';
+
+const logger = new LoggerService('RedisService');
 
 export class RedisService {
     private static instance: RedisService;
@@ -18,25 +21,27 @@ export class RedisService {
     }
 
     public async ensureConnection(): Promise<void> {
-    if (this.isConnected) return;
-    
-    // Espera hasta que el cliente esté listo o falle
-    return new Promise((resolve, reject) => {
-        if (this.client) {
-            this.client.once('connect', () => resolve());
-            this.client.once('error', (err) => reject(err));
-        } else {
-            reject(new Error("Redis client not initialized"));
-        }
-    });
-}
+        if (this.isConnected) return;
+        
+        // Espera hasta que el cliente esté listo o falle
+        return new Promise((resolve, reject) => {
+            if (this.client) {
+                this.client.once('connect', () => resolve());
+                this.client.once('error', (err) => reject(err));
+            } else {
+                reject(new Error("Redis client not initialized"));
+            }
+        });
+    }
 
     private async initializeClient() {
+        if (this.client) return;
+
         // Read REDIS_URL from environment variables
         const redisUrl = process.env.REDIS_URL;
 
         if (!redisUrl) {
-            console.log('ℹ️ REDIS_URL not configured in .env. Caching is disabled.');
+            logger.warn('⚠️ REDIS_URL not configured. Caching is disabled.');
             return;
         }
 
@@ -48,7 +53,7 @@ export class RedisService {
                 enableOfflineQueue: false,
                 retryStrategy: (times) => {
                     if (times > 3) {
-                        console.warn('⚠️ Could not connect to Redis. Retrying in 5s...');
+                        logger.warn('⚠️ Could not connect to Redis. Retrying in 5s...');
                         return 5000;
                     }
                     return Math.min(times * 50, 2000);
@@ -57,15 +62,15 @@ export class RedisService {
 
             this.client.on('connect', () => {
                 this.isConnected = true;
-                console.log('✅ Connected to Redis cache');
+                logger.log('✅ Connected to Redis cache');
             });
 
-            this.client.on('error', (err) => {
+            this.client.on('error', (err: any) => {
                 this.isConnected = false;
-                console.error('❌ Redis connection error (Caching disabled):', err.message);
+                logger.error(`❌ Redis connection error (Caching disabled): ${err.message}`, err.stack);
             });
-        } catch (error) {
-            console.error('Failed to initialize Redis client:', error);
+        } catch (error: any) {
+            logger.error(`Failed to initialize Redis client: ${error.message}`, error.stack);
         }
     }
 
@@ -76,8 +81,8 @@ export class RedisService {
         if (!this.client || !this.isConnected) return null;
         try {
             return await this.client.get(key);
-        } catch {
-            console.error('Error connecting to Redis');
+        } catch (error: any) {
+            logger.error(`Error connecting to Redis: ${error.message}`);
             return null;
         }
     }
@@ -89,8 +94,8 @@ export class RedisService {
         if (!this.client || !this.isConnected) return;
         try {
             await this.client.set(key, value, 'EX', ttlSeconds);
-        } catch (error) {
-            console.error(`Error setting key ${key} in Redis:`, error);
+        } catch (error: any) {
+            logger.error(`Error setting key ${key} in Redis: ${error.message}`);
         }
     }
 
@@ -101,8 +106,8 @@ export class RedisService {
         if (!this.client || !this.isConnected) return;
         try {
             await this.client.del(key);
-        } catch (error) {
-            console.error(`Error deleting key ${key} from Redis:`, error);
+        } catch (error: any) {
+            logger.error(`Error deleting key ${key} from Redis: ${error.message}`);
         }
     }
 

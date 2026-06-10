@@ -1,590 +1,1032 @@
 {
-	"info": {
-		"_postman_id": "8902bdbe-1234-4bc6-829d-7f1234abcd9f",
-		"name": "Feelin Artist API - Completo de Autenticación y Perfiles",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "1. Autenticación (Login y Registro)",
-			"item": [
-				{
-					"name": "Login - Usuario Registrado (200 OK)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"correo\": \"artista_nuevo@gmail.com\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/auth/login",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"auth",
-								"login"
-							]
-						},
-						"description": "Inicia sesión con un correo existente. Retorna los detalles del usuario y el JWT Token."
-					},
-					"response": []
-				},
-				{
-					"name": "Login - Usuario No Registrado (404 Not Found)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"correo\": \"no_registrado@gmail.com\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/auth/login",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"auth",
-								"login"
-							]
-						},
-						"description": "Retorna 404 si el usuario no ha sido registrado previamente con este correo."
-					},
-					"response": []
-				},
-				{
-					"name": "Registro - Campos Faltantes (400 Bad Request)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"correo\": \"nuevo_usuario@gmail.com\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/auth/register",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"auth",
-								"register"
-							]
-						},
-						"description": "Valida que faltan campos obligatorios. Retorna mensajes específicos por campo."
-					},
-					"response": []
-				},
-				{
-					"name": "Registro - Exitoso (201 Created)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"correo\": \"artista_nuevo@gmail.com\",\n    \"nombre\": \"Artista de Prueba\",\n    \"imagen\": \"https://lh3.googleusercontent.com/a/ac123\",\n    \"zonaHoraria\": \"America/Lima\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/auth/register",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"auth",
-								"register"
-							]
-						},
-						"description": "Registra al usuario y retorna sus detalles con el JWT Token para autenticación."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "2. Categorías",
-			"item": [
-				{
-					"name": "Listar Categorías de Artista (200 OK)",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/config/categorias-artista",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"config",
-								"categorias-artista"
-							]
-						},
-						"description": "Obtiene las categorías activas en el sistema para mostrarlas en el selector del frontend."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "3. Verificar Nombre de Usuario",
-			"item": [
-				{
-					"name": "Verificar - Disponible (200 OK)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"nombreUsuario\": \"usuario_disponible_xyz\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/usuarios/verificar-nombre-usuario",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"usuarios",
-								"verificar-nombre-usuario"
-							]
-						},
-						"description": "Verifica si el nombre de usuario está libre. Retorna disponible: true."
-					},
-					"response": []
-				},
-				{
-					"name": "Verificar - En Uso (200 OK con Sugerencias)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"nombreUsuario\": \"artistaprueba\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/usuarios/verificar-nombre-usuario",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"usuarios",
-								"verificar-nombre-usuario"
-							]
-						},
-						"description": "Nombre de usuario ya ocupado. Retorna disponible: false y tres sugerencias libres."
-					},
-					"response": []
-				},
-				{
-					"name": "Verificar - Menor a 3 caracteres (400 Bad Request)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"nombreUsuario\": \"dj\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/usuarios/verificar-nombre-usuario",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"usuarios",
-								"verificar-nombre-usuario"
-							]
-						},
-						"description": "Validación de longitud menor a 3 caracteres."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "4. Asignación de Rol (Completar Registro)",
-			"item": [
-				{
-					"name": "Asignar ARTISTA - Exitoso (200 OK)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"rol\": \"ARTISTA\",\n    \"nombreUsuario\": \"artista_nuevo_user\",\n    \"categoria\": \"DJ\",\n    \"nombreArtistico\": \"DJ Carlos\",\n    \"generosFavoritos\": [\"Electrónica\", \"House\"],\n    \"codigoTelefono\": \"+51\",\n    \"numeroTelefono\": \"987654321\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/usuarios/rol",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"usuarios",
-								"rol"
-							]
-						},
-						"description": "Asigna exitosamente el rol ARTISTA. Retorna el perfil y un nuevo token con el rol cargado."
-					},
-					"response": []
-				},
-				{
-					"name": "Asignar ARTISTA - Falta Categoría (400 Bad Request)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"rol\": \"ARTISTA\",\n    \"nombreUsuario\": \"artista_nuevo_user\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/usuarios/rol",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"usuarios",
-								"rol"
-							]
-						},
-						"description": "Falla al no enviar la categoría requerida del perfil artista."
-					},
-					"response": []
-				},
-				{
-					"name": "Asignar PUBLICO - Exitoso (200 OK)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"rol\": \"PUBLICO\",\n    \"nombreUsuario\": \"oyente_musica\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/usuarios/rol",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"usuarios",
-								"rol"
-							]
-						},
-						"description": "Asigna el rol PUBLICO. Retorna el perfil y el nuevo token."
-					},
-					"response": []
-				},
-				{
-					"name": "Asignar PUBLICO - Falta Nombre de Usuario (400 Bad Request)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"rol\": \"PUBLICO\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/usuarios/rol",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"usuarios",
-								"rol"
-							]
-						},
-						"description": "Falla al no proveer el nombreUsuario (obligatorio)."
-					},
-					"response": []
-				},
-				{
-					"name": "Asignar DISCOTECA - Exitoso (200 OK)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"rol\": \"DISCOTECA\",\n    \"nombreUsuario\": \"pacha_miraflores\",\n    \"nombreLocal\": \"Pacha Club\",\n    \"pais\": \"Perú\",\n    \"ciudad\": \"Lima\",\n    \"fechaFundacion\": \"2020-03-15\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/usuarios/rol",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"usuarios",
-								"rol"
-							]
-						},
-						"description": "Asigna el rol DISCOTECA."
-					},
-					"response": []
-				},
-				{
-					"name": "Asignar DISCOTECA - Falta Ciudad (400 Bad Request)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"rol\": \"DISCOTECA\",\n    \"nombreUsuario\": \"pacha_miraflores\",\n    \"pais\": \"Perú\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/usuarios/rol",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"usuarios",
-								"rol"
-							]
-						},
-						"description": "Falla porque para discoteca se requiere obligatoriamente la ciudad."
-					},
-					"response": []
-				},
-				{
-					"name": "Asignar DISCOTECA - Falta País (400 Bad Request)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"rol\": \"DISCOTECA\",\n    \"nombreUsuario\": \"pacha_miraflores\",\n    \"ciudad\": \"Lima\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/usuarios/rol",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"usuarios",
-								"rol"
-							]
-						},
-						"description": "Falla porque para discoteca se requiere obligatoriamente el país."
-					},
-					"response": []
-				},
-				{
-					"name": "Asignar Rol - Rol Inválido (400 Bad Request)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"rol\": \"INVENTADO\",\n    \"nombreUsuario\": \"test\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/usuarios/rol",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"usuarios",
-								"rol"
-							]
-						},
-						"description": "Falla al pasar un nombre de rol distinto a ARTISTA, PUBLICO o DISCOTECA."
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:3000",
-			"type": "string"
-		},
-		{
-			"key": "jwt_token",
-			"value": "PONER_AQUI_EL_JWT_RETORNADO_DEL_LOGIN_O_REGISTRO",
-			"type": "string"
-		}
-	]
+  "info": {
+    "_postman_id": "8902bdbe-1234-4bc6-829d-7f1234abcd9f",
+    "name": "Feelin Artist API - Completo de Autenticación y Perfiles",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Autenticación (Login y Registro)",
+      "item": [
+        {
+          "name": "Login - Usuario Registrado (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.refreshToken);",
+                  "    console.log('Token y RefreshToken guardados automáticamente.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"correo\": \"artista_nuevo@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Inicia sesión con un correo existente. Retorna los detalles del usuario, el JWT Token (15 min) y el Refresh Token (7 días). Ambos tokens se guardan automáticamente en las variables de la colección."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Usuario No Registrado (404 Not Found)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"correo\": \"no_registrado@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Retorna 404 si el usuario no ha sido registrado previamente con este correo. El frontend debe redirigir al flujo de registro (/auth/register)."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Falta Correo (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Retorna 400 con mensaje: 'El correo es requerido'."
+          },
+          "response": []
+        },
+        {
+          "name": "Registro - Exitoso (201 Created)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.refreshToken);",
+                  "    console.log('Token y RefreshToken guardados automáticamente.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"correo\": \"artista_nuevo@gmail.com\",\n    \"nombre\": \"Artista de Prueba\",\n    \"imagen\": \"https://lh3.googleusercontent.com/a/ac123\",\n    \"zonaHoraria\": \"America/Lima\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registra al usuario y retorna sus detalles con el JWT Token (15 min) y el Refresh Token (7 días). Ambos tokens se guardan automáticamente en las variables de la colección."
+          },
+          "response": []
+        },
+        {
+          "name": "Registro - Falta Nombre (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"correo\": \"nuevo_usuario@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Retorna 400 con mensaje: 'El nombre es requerido'. Las validaciones se evalúan en orden: correo → nombre → imagen → zonaHoraria."
+          },
+          "response": []
+        },
+        {
+          "name": "Registro - Falta Imagen (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"correo\": \"nuevo_usuario@gmail.com\",\n    \"nombre\": \"Nuevo Usuario\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Retorna 400 con mensaje: 'La imagen es requerida'."
+          },
+          "response": []
+        },
+        {
+          "name": "Registro - Falta Zona Horaria (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"correo\": \"nuevo_usuario@gmail.com\",\n    \"nombre\": \"Nuevo Usuario\",\n    \"imagen\": \"https://imagen.com/foto.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Retorna 400 con mensaje: 'La zona horaria es requerida'."
+          },
+          "response": []
+        },
+        {
+          "name": "Registro - Usuario Ya Registrado (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"correo\": \"artista_nuevo@gmail.com\",\n    \"nombre\": \"Artista Repetido\",\n    \"imagen\": \"https://imagen.com/foto.jpg\",\n    \"zonaHoraria\": \"America/Lima\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Retorna 400 con mensaje: 'El usuario ya está registrado'. Ocurre cuando el correo ya existe en la base de datos."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Renovación de Token (Refresh)",
+      "item": [
+        {
+          "name": "Refresh - Exitoso (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.refreshToken);",
+                  "    console.log('Nuevos Token y RefreshToken guardados automáticamente.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Renueva el Access Token y el Refresh Token. NO requiere Authorization header. IMPORTANTE: El refresh token anterior queda revocado (rotación). Los nuevos tokens se guardan automáticamente en las variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh - Falta RefreshToken (400 Bad Request)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Retorna 400 con mensaje: 'Token de refresco requerido'."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh - Token Inválido (401 Unauthorized)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"token_inexistente_o_inventado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Retorna 401 con mensaje: 'Token de refresco inválido o expirado'. Ocurre cuando el token no existe, ya fue revocado (rotación), o expiró (7 días)."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh - Token Ya Usado/Revocado (401 Unauthorized)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "PASOS PARA REPRODUCIR: 1) Ejecutar primero 'Refresh - Exitoso' para que el token actual se revoque. 2) Ejecutar esta request con el token viejo (que quedó revocado). Retorna 401 con mensaje: 'Token de refresco inválido o expirado'."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Cerrar Sesión (Logout)",
+      "item": [
+        {
+          "name": "Logout - Exitoso con RefreshToken (200 OK)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Cierra sesión completamente: agrega el Access Token a la lista negra (Redis) y revoca el Refresh Token (PostgreSQL). Retorna 200 con mensaje: 'Sesión cerrada exitosamente'. NOTA: Después de esto, usar el mismo JWT retornará 401 'Token inválido o expirado (sesión cerrada)'."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout - Sin RefreshToken en Body (200 OK)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Cierra sesión parcialmente: solo invalida el Access Token (blacklist en Redis). El Refresh Token NO se revoca y podría usarse para generar nuevos tokens. Se recomienda siempre enviar el refreshToken."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout - Sin Authorization Header (400 Bad Request)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Retorna 400 con mensaje: 'No se proporcionó token de autenticación'. Ocurre cuando no se envía el header Authorization con Bearer token."
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar Token Blacklisted Post-Logout (401 Unauthorized)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombreUsuario\": \"test_post_logout\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/verificar-nombre-usuario",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "verificar-nombre-usuario"
+              ]
+            },
+            "description": "PASOS PARA REPRODUCIR: 1) Ejecutar 'Logout - Exitoso con RefreshToken'. 2) Ejecutar esta request con el mismo JWT. Retorna 401 con mensaje: 'Token inválido o expirado (sesión cerrada)'. Esto demuestra que el token fue agregado a la blacklist de Redis."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Categorías",
+      "item": [
+        {
+          "name": "Listar Categorías de Artista (200 OK)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/config/categorias-artista",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "config",
+                "categorias-artista"
+              ]
+            },
+            "description": "Obtiene las categorías activas en el sistema para mostrarlas en el selector del frontend. Requiere Authorization: Bearer <JWT_TOKEN>."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Verificar Nombre de Usuario",
+      "item": [
+        {
+          "name": "Verificar - Disponible (200 OK)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombreUsuario\": \"usuario_disponible_xyz\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/verificar-nombre-usuario",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "verificar-nombre-usuario"
+              ]
+            },
+            "description": "Verifica si el nombre de usuario está libre. Retorna disponible: true."
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar - En Uso (200 OK con Sugerencias)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombreUsuario\": \"artistaprueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/verificar-nombre-usuario",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "verificar-nombre-usuario"
+              ]
+            },
+            "description": "Nombre de usuario ya ocupado. Retorna disponible: false y tres sugerencias libres."
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar - Menor a 3 caracteres (400 Bad Request)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nombreUsuario\": \"dj\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/verificar-nombre-usuario",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "verificar-nombre-usuario"
+              ]
+            },
+            "description": "Validación de longitud menor a 3 caracteres."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Asignación de Rol (Completar Registro)",
+      "item": [
+        {
+          "name": "Asignar ARTISTA - Exitoso (200 OK)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rol\": \"ARTISTA\",\n    \"nombreUsuario\": \"artista_nuevo_user\",\n    \"categoria\": \"DJ\",\n    \"nombreArtistico\": \"DJ Carlos\",\n    \"generosFavoritos\": [\"Electrónica\", \"House\"],\n    \"codigoTelefono\": \"+51\",\n    \"numeroTelefono\": \"987654321\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/rol",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "rol"
+              ]
+            },
+            "description": "Asigna exitosamente el rol ARTISTA. Retorna el perfil y un nuevo Access Token con el rol cargado. NOTA: NO retorna un nuevo refreshToken, el frontend debe seguir usando el mismo refreshToken del login/registro."
+          },
+          "response": []
+        },
+        {
+          "name": "Asignar ARTISTA - Falta Categoría (400 Bad Request)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rol\": \"ARTISTA\",\n    \"nombreUsuario\": \"artista_nuevo_user\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/rol",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "rol"
+              ]
+            },
+            "description": "Falla al no enviar la categoría requerida del perfil artista."
+          },
+          "response": []
+        },
+        {
+          "name": "Asignar PUBLICO - Exitoso (200 OK)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rol\": \"PUBLICO\",\n    \"nombreUsuario\": \"oyente_musica\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/rol",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "rol"
+              ]
+            },
+            "description": "Asigna el rol PUBLICO. Retorna el perfil y el nuevo Access Token con rol. NOTA: El refreshToken del login/registro sigue vigente."
+          },
+          "response": []
+        },
+        {
+          "name": "Asignar PUBLICO - Falta Nombre de Usuario (400 Bad Request)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rol\": \"PUBLICO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/rol",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "rol"
+              ]
+            },
+            "description": "Falla al no proveer el nombreUsuario (obligatorio)."
+          },
+          "response": []
+        },
+        {
+          "name": "Asignar DISCOTECA - Exitoso (200 OK)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rol\": \"DISCOTECA\",\n    \"nombreUsuario\": \"pacha_miraflores\",\n    \"nombreLocal\": \"Pacha Club\",\n    \"pais\": \"Perú\",\n    \"ciudad\": \"Lima\",\n    \"fechaFundacion\": \"2020-03-15\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/rol",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "rol"
+              ]
+            },
+            "description": "Asigna el rol DISCOTECA."
+          },
+          "response": []
+        },
+        {
+          "name": "Asignar DISCOTECA - Falta Ciudad (400 Bad Request)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rol\": \"DISCOTECA\",\n    \"nombreUsuario\": \"pacha_miraflores\",\n    \"pais\": \"Perú\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/rol",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "rol"
+              ]
+            },
+            "description": "Falla porque para discoteca se requiere obligatoriamente la ciudad."
+          },
+          "response": []
+        },
+        {
+          "name": "Asignar DISCOTECA - Falta País (400 Bad Request)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rol\": \"DISCOTECA\",\n    \"nombreUsuario\": \"pacha_miraflores\",\n    \"ciudad\": \"Lima\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/rol",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "rol"
+              ]
+            },
+            "description": "Falla porque para discoteca se requiere obligatoriamente el país."
+          },
+          "response": []
+        },
+        {
+          "name": "Asignar Rol - Rol Inválido (400 Bad Request)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rol\": \"INVENTADO\",\n    \"nombreUsuario\": \"test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/rol",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuarios",
+                "rol"
+              ]
+            },
+            "description": "Falla al pasar un nombre de rol distinto a ARTISTA, PUBLICO o DISCOTECA."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "PONER_AQUI_EL_JWT_RETORNADO_DEL_LOGIN_O_REGISTRO",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "PONER_AQUI_EL_REFRESH_TOKEN_RETORNADO_DEL_LOGIN_O_REGISTRO",
+      "type": "string"
+    }
+  ]
 }

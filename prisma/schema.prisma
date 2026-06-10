@@ -36,6 +36,7 @@ model Usuario {
   perfilCompletadoReconocido Boolean          @default(false)
   bloqueados                 Bloqueo[]        @relation("Bloqueador")
   bloqueadoPor               Bloqueo[]        @relation("Bloqueado")
+  refreshTokens              RefreshToken[]
 }
 
 enum EstadoCuenta {
@@ -287,3 +288,31 @@ model CategoriaArtista {
   creadoPor      String?
   actualizadoPor String?
 }
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  expiraEn  DateTime
+  creadoEn  DateTime @default(now())
+  revocado  Boolean  @default(false)
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  entidadId      String?  // Ej. el ID del usuario, transacción o canción afectada
+  entidadTipo    String?  // Ej. "Usuario", "Transaccion", "PedidoCancion"
+  accion         String   // Ej. "LOGIN_SUCCESS", "PAGO_RECHAZADO"
+  ip             String?
+  dispositivo    String?
+  ubicacion      String?
+  userAgent      String?
+  metadatos      Json?    // Detalles adicionales del evento
+  creadoEn       DateTime @default(now())
+
+  @@index([entidadId, entidadTipo])
+  @@index([accion])
+  @@index([creadoEn])
+}
+

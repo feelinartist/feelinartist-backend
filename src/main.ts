@@ -7,8 +7,12 @@ import helmet from 'helmet';
 import path from 'node:path';
 import { AppModule } from './app.module';
 import { generalLimiter } from './middleware/rate-limit';
+import { validateEnv } from './config/env-validation';
 
 async function bootstrap() {
+    // Validar variables de entorno al iniciar
+    validateEnv();
+
     const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 

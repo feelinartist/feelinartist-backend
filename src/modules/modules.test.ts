@@ -28,7 +28,9 @@ vi.mock('../presentation/controllers/controlador-admin-config', () => ({
 
 const mockControladorAutenticacion = {
     iniciarSesion: vi.fn(),
-    registrar: vi.fn()
+    registrar: vi.fn(),
+    refrescarToken: vi.fn(),
+    cerrarSesion: vi.fn()
 };
 vi.mock('../presentation/controllers/controlador-autenticacion', () => ({
     ControladorAutenticacion: class {
@@ -262,6 +264,12 @@ describe('NestJS Modules Controllers delegation tests', () => {
 
         controller.registrar(req as Request, res as Response);
         expect(mockControladorAutenticacion.registrar).toHaveBeenCalledWith(req, res);
+
+        controller.refrescarToken(req as Request, res as Response);
+        expect(mockControladorAutenticacion.refrescarToken).toHaveBeenCalledWith(req, res);
+
+        controller.cerrarSesion(req as Request, res as Response);
+        expect(mockControladorAutenticacion.cerrarSesion).toHaveBeenCalledWith(req, res);
     });
 
     it('EventsController', () => {

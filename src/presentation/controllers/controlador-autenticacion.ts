@@ -1,75 +1,106 @@
 import { Request, Response } from 'express';
-import { CrearUsuarioCasoUso } from '../../application/use-cases/crear-usuario';
 import { RepositorioUsuarioPrisma } from '../../infrastructure/repositories/prisma-user-repository';
-import { generateToken } from '../../middleware/auth';
+import { RepositorioAuthPrisma } from '../../infrastructure/repositories/prisma-auth-repository';
+import { AuthService } from '../../application/services/auth-service';
+import { loginSchema, registerSchema, refreshSchema } from '../../domain/schemas/auth.schema';
+import { LoggerService } from '../../infrastructure/services/logger-service';
 
+const logger = new LoggerService('ControladorAutenticacion');
 const repositorioUsuario = new RepositorioUsuarioPrisma();
-const crearUsuarioCasoUso = new CrearUsuarioCasoUso(repositorioUsuario);
+const repositorioAuth = new RepositorioAuthPrisma();
+const authService = new AuthService(repositorioUsuario, repositorioAuth);
 
 export class ControladorAutenticacion {
     async iniciarSesion(req: Request, res: Response) {
         try {
-            const { correo } = req.body;
-
-            if (!correo) {
-                return res.status(400).json({ message: 'El correo es requerido' });
+            const validation = loginSchema.safeParse(req.body);
+            if (!validation.success) {
+                const errorMsg = validation.error.issues[0].message;
+                return res.status(400).json({ message: errorMsg });
             }
 
-            const usuarioExistente = await repositorioUsuario.buscarPorCorreo(correo);
-            if (!usuarioExistente) {
+            const { correo, nombre, imagen, zonaHoraria } = validation.data;
+
+            const response = await authService.iniciarSesion(correo, nombre, imagen, zonaHoraria);
+            if (!response) {
                 return res.status(404).json({ message: 'Usuario no registrado' });
             }
 
-            const { nombre, imagen, zonaHoraria } = req.body;
-            const usuario = await crearUsuarioCasoUso.ejecutar({ correo, nombre, imagen, zonaHoraria });
-
-            // Generate a real JWT for the frontend to use in subsequent API calls
-            const token = generateToken({
-                id: usuario.id,
-                email: usuario.correo,
-                rol: usuario.rol?.nombre
+            return res.status(200).json({
+                ...response.usuario,
+                token: response.token,
+                refreshToken: response.refreshToken,
             });
-
-            return res.status(200).json({ ...usuario, token });
-        } catch (error) {
-            console.error(error);
+        } catch (error: any) {
+            logger.error(`Error en iniciarSesion: ${error.message}`, error.stack);
             return res.status(500).json({ message: 'Error interno del servidor' });
         }
     }
 
     async registrar(req: Request, res: Response) {
         try {
-            const { correo, nombre, imagen, zonaHoraria } = req.body;
-
-            if (!correo) {
-                return res.status(400).json({ message: 'El correo es requerido' });
-            }
-            if (!nombre) {
-                return res.status(400).json({ message: 'El nombre es requerido' });
-            }
-            if (!imagen) {
-                return res.status(400).json({ message: 'La imagen es requerida' });
-            }
-            if (!zonaHoraria) {
-                return res.status(400).json({ message: 'La zona horaria es requerida' });
+            const validation = registerSchema.safeParse(req.body);
+            if (!validation.success) {
+                const errorMsg = validation.error.issues[0].message;
+                return res.status(400).json({ message: errorMsg });
             }
 
-            const usuarioExistente = await repositorioUsuario.buscarPorCorreo(correo);
-            if (usuarioExistente) {
-                return res.status(400).json({ message: 'El usuario ya está registrado' });
-            }
+            const { correo, nombre, imagen, zonaHoraria } = validation.data;
 
-            const usuario = await crearUsuarioCasoUso.ejecutar({ correo, nombre, imagen, zonaHoraria });
+            const response = await authService.registrar(correo, nombre, imagen, zonaHoraria);
 
-            const token = generateToken({
-                id: usuario.id,
-                email: usuario.correo,
-                rol: usuario.rol?.nombre
+            return res.status(201).json({
+                ...response.usuario,
+                token: response.token,
+                refreshToken: response.refreshToken,
             });
+        } catch (error: any) {
+            if (error.message === 'El usuario ya está registrado') {
+                return res.status(400).json({ message: error.message });
+            }
+            logger.error(`Error en registrar: ${error.message}`, error.stack);
+            return res.status(500).json({ message: 'Error interno del servidor' });
+        }
+    }
 
-            return res.status(201).json({ ...usuario, token });
-        } catch (error) {
-            console.error(error);
+    async refrescarToken(req: Request, res: Response) {
+        try {
+            const validation = refreshSchema.safeParse(req.body);
+            if (!validation.success) {
+                const errorMsg = validation.error.issues[0].message;
+                return res.status(400).json({ message: errorMsg });
+            }
+
+            const { refreshToken } = validation.data;
+
+            const response = await authService.refrescarToken(refreshToken);
+            if (!response) {
+                return res.status(401).json({ message: 'Token de refresco inválido o expirado' });
+            }
+
+            return res.status(200).json(response);
+        } catch (error: any) {
+            logger.error(`Error en refrescarToken: ${error.message}`, error.stack);
+            return res.status(500).json({ message: 'Error interno del servidor' });
+        }
+    }
+
+    async cerrarSesion(req: Request, res: Response) {
+        try {
+            const authHeader = req.headers.authorization;
+            const { refreshToken } = req.body;
+
+            if (!authHeader?.startsWith('Bearer ')) {
+                return res.status(400).json({ message: 'No se proporcionó token de autenticación' });
+            }
+
+            const token = authHeader.substring(7);
+
+            await authService.cerrarSesion(token, refreshToken);
+
+            return res.status(200).json({ message: 'Sesión cerrada exitosamente' });
+        } catch (error: any) {
+            logger.error(`Error en cerrarSesion: ${error.message}`, error.stack);
             return res.status(500).json({ message: 'Error interno del servidor' });
         }
     }

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { generateToken, authMiddleware, roleGuard } from './auth';
+import { generateToken, generateRefreshToken, authMiddleware, roleGuard } from './auth';
 
 describe('Auth Middleware & Helpers', () => {
     let originalEnv: NodeJS.ProcessEnv;
@@ -54,6 +54,13 @@ describe('Auth Middleware & Helpers', () => {
 
             const decoded = jwt.verify(token, 'test-secret');
             expect(decoded).toMatchObject({ id: '1', email: 'test@test.com', rol: 'ADMIN' });
+        });
+
+        it('should generate a secure, random refresh token', () => {
+            const token = generateRefreshToken();
+            expect(token).toBeDefined();
+            expect(typeof token).toBe('string');
+            expect(token.length).toBe(80); // 40 bytes in hex is 80 characters
         });
     });
 

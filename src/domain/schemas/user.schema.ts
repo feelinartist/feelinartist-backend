@@ -56,7 +56,7 @@ export const updateRoleSchema = z.looseObject({
 
 
 // Update profile schema
-export const updateProfileSchema = z.object({
+export const updateProfileSchema = z.looseObject({
     usuarioId: z.uuid({ error: 'ID de usuario inválido' }),
     nombre: z.string().optional(),
     nombreUsuario: z.string().optional(),

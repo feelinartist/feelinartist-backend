@@ -10,16 +10,19 @@ export class AdminConfigController {
     private readonly controlador = new ControladorAdminConfig();
 
     @Get('config/redes-sociales')
+    @UseGuards(JwtAuthGuard)
     listarRedesSociales(@Req() req: Request, @Res() res: Response) {
         return this.controlador.listarRedesSociales(req, res);
     }
 
     @Get('config/metodos-donacion')
+    @UseGuards(JwtAuthGuard)
     listarMetodosDonacion(@Req() req: Request, @Res() res: Response) {
         return this.controlador.listarMetodosDonacion(req, res);
     }
 
     @Get('config/categorias-artista')
+    @UseGuards(JwtAuthGuard)
     listarCategoriasArtista(@Req() req: Request, @Res() res: Response) {
         return this.controlador.listarCategoriasArtista(req, res);
     }

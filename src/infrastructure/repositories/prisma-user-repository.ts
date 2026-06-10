@@ -158,6 +158,9 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
             if (usuario.nombreUsuario && usuario.nombreUsuario !== usuarioAnterior?.nombreUsuario) {
                 await redisService.del(`user:profile:${usuario.nombreUsuario}`);
             }
+            if (datos.estado !== undefined) {
+                await redisService.set(`user:${id}:status`, datos.estado, 86400);
+            }
         } catch (err) {
             console.error('Error invalidating cache:', err);
         }

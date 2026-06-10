@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { randomBytes } from 'node:crypto';
 
 // Extend Express Request to include user
 declare global {
@@ -26,11 +27,18 @@ function getSecret(): string {
 }
 
 /**
- * Generates a signed JWT for a user.
+ * Generates a signed JWT for a user (Access Token).
  */
 export function generateToken(payload: { id: string; email: string; rol?: string }): string {
-    const days = Number.parseInt(process.env.JWT_EXPIRES_IN_DAYS || '30', 10);
-    return jwt.sign(payload, getSecret(), { expiresIn: `${days}d` });
+    const expires = process.env.JWT_EXPIRES_IN || '15m';
+    return jwt.sign(payload, getSecret(), { expiresIn: expires as any });
+}
+
+/**
+ * Generates a secure, random Refresh Token.
+ */
+export function generateRefreshToken(): string {
+    return randomBytes(40).toString('hex');
 }
 
 /**

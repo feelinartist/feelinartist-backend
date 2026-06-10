@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Redis from 'ioredis';
+import { logger } from './logger-service';
 
 // Mock ioredis with dynamic event triggering capability
 const redisEventCallbacks: Record<string, Function> = {};
@@ -87,17 +88,29 @@ describe('RedisService', () => {
         }
     });
 
+    it('should return early in initializeClient if client is already initialized', async () => {
+        const inst = RedisService.getInstance();
+        expect((inst as any).client).toBeDefined();
+        
+        const initialClient = (inst as any).client;
+        await (inst as any).initializeClient();
+        expect((inst as any).client).toBe(initialClient);
+    });
+
     it('should print notice and not initialize client if REDIS_URL is not configured', () => {
         (RedisService as any).instance = null;
         delete process.env.REDIS_URL;
         
-        const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        const loggerSpy = vi.spyOn(logger, 'warn').mockImplementation(() => logger);
         const inst = RedisService.getInstance();
         
-        expect(consoleSpy).toHaveBeenCalledWith('ℹ️ REDIS_URL not configured in .env. Caching is disabled.');
+        expect(loggerSpy).toHaveBeenCalledWith(
+            expect.stringContaining('REDIS_URL not configured'),
+            expect.objectContaining({ context: 'RedisService' })
+        );
         expect(inst.getClient()).toBeNull();
         expect(inst.getIsConnected()).toBe(false);
-        consoleSpy.mockRestore();
+        loggerSpy.mockRestore();
     });
 
     it('should execute basic commands safely', async () => {
@@ -249,14 +262,17 @@ describe('RedisService', () => {
         process.env.REDIS_URL = 'redis://localhost:6379';
         throwOnConstructor = true;
         
-        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => logger);
         const inst = RedisService.getInstance();
         
-        expect(consoleSpy).toHaveBeenCalledWith('Failed to initialize Redis client:', expect.any(Error));
+        expect(loggerSpy).toHaveBeenCalledWith(
+            expect.stringContaining('Failed to initialize Redis client'),
+            expect.objectContaining({ context: 'RedisService', trace: expect.any(String) })
+        );
         expect(inst.getClient()).toBeNull();
         expect(inst.getIsConnected()).toBe(false);
         
         throwOnConstructor = false;
-        consoleSpy.mockRestore();
+        loggerSpy.mockRestore();
     });
 });

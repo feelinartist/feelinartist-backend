@@ -32,11 +32,11 @@ describe('NestJS auth compatibility', () => {
         process.env.JWT_SECRET = originalJwtSecret;
     });
 
-    it('attaches the decoded bearer token user to the request', () => {
+    it('attaches the decoded bearer token user to the request', async () => {
         const token = jwt.sign({ id: 'u1', email: 'user@test.dev', rol: 'ADMIN' }, dynamicJwtSecret);
         const request = { headers: { authorization: `Bearer ${token}` } };
 
-        const result = new JwtAuthGuard().canActivate(createContext(request));
+        const result = await new JwtAuthGuard().canActivate(createContext(request));
 
         expect(result).toBe(true);
         expect(request).toMatchObject({

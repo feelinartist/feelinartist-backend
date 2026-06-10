@@ -14,6 +14,10 @@ vi.mock('@nestjs/core', () => ({
   },
 }));
 
+vi.mock('./config/env-validation', () => ({
+  validateEnv: vi.fn(),
+}));
+
 describe('main bootstrap', () => {
   const originalEnv = process.env;
 

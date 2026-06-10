@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ExecutionContext } from '@nestjs/common';
 import jwt from 'jsonwebtoken';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { redisService } from '../../infrastructure/services/redis-service';
+import prisma from '../../infrastructure/database/prisma';
 
 function createContext(request: any): ExecutionContext {
     return {
@@ -24,23 +26,24 @@ describe('JwtAuthGuard', () => {
         originalEnv = { ...process.env };
         process.env.JWT_SECRET = 'guard-secret';
         guard = new JwtAuthGuard();
+        vi.restoreAllMocks();
     });
 
     afterEach(() => {
         process.env = originalEnv;
     });
 
-    it('should throw an error if configuration is missing', () => {
+    it('should throw an error if configuration is missing', async () => {
         delete process.env.JWT_SECRET;
         delete process.env.NEXTAUTH_SECRET;
 
         const request = { headers: { authorization: 'Bearer token' } };
         const context = createContext(request);
 
-        expect(() => guard.canActivate(context)).toThrow('Token inválido o expirado');
+        await expect(guard.canActivate(context)).rejects.toThrow('Token inválido o expirado');
     });
 
-    it('should work with NEXTAUTH_SECRET if JWT_SECRET is not configured', () => {
+    it('should work with NEXTAUTH_SECRET if JWT_SECRET is not configured', async () => {
         delete process.env.JWT_SECRET;
         process.env.NEXTAUTH_SECRET = 'nextauth-guard-secret';
 
@@ -48,7 +51,10 @@ describe('JwtAuthGuard', () => {
         const request = { headers: { authorization: `Bearer ${token}` } };
         const context = createContext(request);
 
-        const result = guard.canActivate(context);
+        // Spy on redisService.get to bypass blacklist and status checks
+        vi.spyOn(redisService, 'get').mockResolvedValue(null);
+
+        const result = await guard.canActivate(context);
 
         expect(result).toBe(true);
         expect(request).toMatchObject({
@@ -56,41 +62,45 @@ describe('JwtAuthGuard', () => {
         });
     });
 
-    it('should throw CompatibleUnauthorizedException if authorization header is missing', () => {
+    it('should throw CompatibleUnauthorizedException if authorization header is missing', async () => {
         const request = { headers: {} };
         const context = createContext(request);
 
-        expect(() => guard.canActivate(context)).toThrow('No se proporcionó token de autenticación');
+        await expect(guard.canActivate(context)).rejects.toThrow('No se proporcionó token de autenticación');
     });
 
-    it('should throw CompatibleUnauthorizedException if authorization header does not start with Bearer', () => {
+    it('should throw CompatibleUnauthorizedException if authorization header does not start with Bearer', async () => {
         const request = { headers: { authorization: 'Basic abc' } };
         const context = createContext(request);
 
-        expect(() => guard.canActivate(context)).toThrow('No se proporcionó token de autenticación');
+        await expect(guard.canActivate(context)).rejects.toThrow('No se proporcionó token de autenticación');
     });
 
-    it('should throw CompatibleUnauthorizedException if token is invalid or expired', () => {
+    it('should throw CompatibleUnauthorizedException if token is invalid or expired', async () => {
         const request = { headers: { authorization: 'Bearer invalid-token' } };
         const context = createContext(request);
 
-        expect(() => guard.canActivate(context)).toThrow('Token inválido o expirado');
+        await expect(guard.canActivate(context)).rejects.toThrow('Token inválido o expirado');
     });
 
-    it('should throw CompatibleForbiddenException if user has no role and accesses restricted route', () => {
+    it('should throw CompatibleForbiddenException if user has no role and accesses restricted route', async () => {
         const token = jwt.sign({ id: 'u1', email: 'user@test.com' }, 'guard-secret');
         const request = { path: '/usuarios/perfil', headers: { authorization: `Bearer ${token}` } };
         const context = createContext(request);
 
-        expect(() => guard.canActivate(context)).toThrow('Debe completar el perfil seleccionando un rol');
+        vi.spyOn(redisService, 'get').mockResolvedValue(null);
+
+        await expect(guard.canActivate(context)).rejects.toThrow('Debe completar el perfil seleccionando un rol');
     });
 
-    it('should allow access if user has no role but accesses role setup route', () => {
+    it('should allow access if user has no role but accesses role setup route', async () => {
         const token = jwt.sign({ id: 'u1', email: 'user@test.com' }, 'guard-secret');
         const request = { path: '/usuarios/rol', headers: { authorization: `Bearer ${token}` } };
         const context = createContext(request);
 
-        const result = guard.canActivate(context);
+        vi.spyOn(redisService, 'get').mockResolvedValue(null);
+
+        const result = await guard.canActivate(context);
 
         expect(result).toBe(true);
         expect(request).toMatchObject({
@@ -98,16 +108,57 @@ describe('JwtAuthGuard', () => {
         });
     });
 
-    it('should attach user to request and return true on valid token', () => {
+    it('should attach user to request and return true on valid token', async () => {
         const token = jwt.sign({ id: 'u1', email: 'user@test.com', rol: 'USER' }, 'guard-secret');
         const request = { headers: { authorization: `Bearer ${token}` } };
         const context = createContext(request);
 
-        const result = guard.canActivate(context);
+        vi.spyOn(redisService, 'get').mockResolvedValue(null);
+
+        const result = await guard.canActivate(context);
 
         expect(result).toBe(true);
         expect(request).toMatchObject({
             user: { id: 'u1', email: 'user@test.com', rol: 'USER' }
         });
+    });
+
+    it('should throw CompatibleUnauthorizedException if token is blacklisted in Redis', async () => {
+        const token = jwt.sign({ id: 'u1', email: 'user@test.com', rol: 'USER' }, 'guard-secret');
+        const request = { headers: { authorization: `Bearer ${token}` } };
+        const context = createContext(request);
+
+        vi.spyOn(redisService, 'get').mockResolvedValueOnce('true'); // blacklisted
+
+        await expect(guard.canActivate(context)).rejects.toThrow('Token inválido o expirado (sesión cerrada)');
+    });
+
+    it('should throw CompatibleUnauthorizedException if user status is not ACTIVO (cached)', async () => {
+        const token = jwt.sign({ id: 'u1', email: 'user@test.com', rol: 'USER' }, 'guard-secret');
+        const request = { headers: { authorization: `Bearer ${token}` } };
+        const context = createContext(request);
+
+        vi.spyOn(redisService, 'get')
+            .mockResolvedValueOnce(null) // blacklist check: false
+            .mockResolvedValueOnce('BANEADO'); // status check: banned
+
+        await expect(guard.canActivate(context)).rejects.toThrow('Tu cuenta ha sido deshabilitada o baneada');
+    });
+
+    it('should throw CompatibleUnauthorizedException if user status is not ACTIVO (DB fallback)', async () => {
+        const token = jwt.sign({ id: 'u1', email: 'user@test.com', rol: 'USER' }, 'guard-secret');
+        const request = { headers: { authorization: `Bearer ${token}` } };
+        const context = createContext(request);
+
+        vi.spyOn(redisService, 'get')
+            .mockResolvedValueOnce(null) // blacklist check: false
+            .mockResolvedValueOnce(null); // status check: cache miss
+
+        vi.mocked(prisma.usuario.findUnique).mockResolvedValueOnce({
+            id: 'u1',
+            estado: 'DESHABILITADO'
+        } as any);
+
+        await expect(guard.canActivate(context)).rejects.toThrow('Tu cuenta ha sido deshabilitada o baneada');
     });
 });

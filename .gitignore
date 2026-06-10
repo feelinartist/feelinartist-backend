@@ -27,3 +27,24 @@ Thumbs.db
 
 # User Uploads (Local Storage)
 uploads
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing / Scratch Data / Local DB
+scratch/
+*.sqlite
+*.sqlite-journal
+
+# Agent / Tooling
+.gemini/
+
+# Sensitive markdown documentation
+*.md
+!README.md

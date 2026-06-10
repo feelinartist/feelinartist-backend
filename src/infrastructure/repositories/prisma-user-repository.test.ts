@@ -511,6 +511,59 @@ describe('RepositorioUsuarioPrisma', () => {
             expect(prisma.usuario.update).toHaveBeenCalled();
         });
 
+        it('actualizar: should use provided categoriaId or categoria', async () => {
+            const mockUserBefore = { id: 'user-1', nombreUsuario: 'testold' };
+            const mockUserAfter = { id: 'user-1', nombreUsuario: 'testnew' };
+
+            vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUserBefore as any);
+            vi.mocked(prisma.usuario.update).mockResolvedValue(mockUserAfter as any);
+            vi.mocked(prisma.perfilArtista.findUnique).mockResolvedValue(null);
+
+            // Test case 1: categoriaId is provided
+            await repository.actualizar('user-1', {
+                perfilArtista: {
+                    categoriaId: 'some-provided-cat-id',
+                    redesSociales: [],
+                    metodosDonacion: [],
+                    galeria: []
+                }
+            });
+
+            expect(prisma.usuario.update).toHaveBeenCalledWith(expect.objectContaining({
+                data: expect.objectContaining({
+                    perfilArtista: expect.objectContaining({
+                        upsert: expect.objectContaining({
+                            create: expect.objectContaining({
+                                categoriaId: 'some-provided-cat-id'
+                            })
+                        })
+                    })
+                })
+            }));
+
+            // Test case 2: categoria is provided instead of categoriaId
+            await repository.actualizar('user-1', {
+                perfilArtista: {
+                    categoria: 'some-provided-cat-name',
+                    redesSociales: [],
+                    metodosDonacion: [],
+                    galeria: []
+                }
+            });
+
+            expect(prisma.usuario.update).toHaveBeenCalledWith(expect.objectContaining({
+                data: expect.objectContaining({
+                    perfilArtista: expect.objectContaining({
+                        upsert: expect.objectContaining({
+                            create: expect.objectContaining({
+                                categoriaId: 'some-provided-cat-name'
+                            })
+                        })
+                    })
+                })
+            }));
+        });
+
         it('actualizar: should map redesSociales with fallback to phone number', async () => {
             const mockUserBefore = { id: 'user-1', nombreUsuario: 'testold' };
             const mockUserAfter = { id: 'user-1', nombreUsuario: 'testnew' };
@@ -758,6 +811,21 @@ describe('RepositorioUsuarioPrisma', () => {
             });
 
             expect((globalThis as any).mockDeleteImageImpl).not.toHaveBeenCalled();
+        });
+
+        it('actualizar: should cache user status in Redis when estado is provided', async () => {
+            const mockUserBefore = { id: 'user-1', nombreUsuario: 'testold' };
+            const mockUserAfter = { id: 'user-1', nombreUsuario: 'testnew', estado: 'BANEADO' };
+
+            vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUserBefore as any);
+            vi.mocked(prisma.usuario.update).mockResolvedValue(mockUserAfter as any);
+            const redisSetSpy = vi.spyOn(redisService, 'set').mockResolvedValue(undefined);
+
+            await repository.actualizar('user-1', {
+                estado: 'BANEADO'
+            });
+
+            expect(redisSetSpy).toHaveBeenCalledWith('user:user-1:status', 'BANEADO', 86400);
         });
     });
 

@@ -14,6 +14,8 @@ import { ImagesModule } from './modules/images/images.module';
 import { SystemConfigModule } from './modules/system-config/system-config.module';
 import { SocketsModule } from './modules/sockets/sockets.module';
 import { authLimiter, uploadLimiter } from './middleware/rate-limit';
+import { AuditMiddleware } from './middleware/audit.middleware';
+import { IdempotencyMiddleware } from './middleware/idempotency.middleware';
 
 @Module({
     imports: [
@@ -35,6 +37,10 @@ import { authLimiter, uploadLimiter } from './middleware/rate-limit';
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
+        // Registrar logger de auditoría global e idempotencia
+        consumer
+            .apply(AuditMiddleware, IdempotencyMiddleware)
+            .forRoutes('*');
         consumer
             .apply(authLimiter)
             .forRoutes(

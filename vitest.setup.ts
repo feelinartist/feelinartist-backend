@@ -105,6 +105,17 @@ vi.mock('@prisma/client', () => {
         seguidor = {
             deleteMany: vi.fn(),
         };
+
+        refreshToken = {
+            create: vi.fn(),
+            findUnique: vi.fn(),
+            findFirst: vi.fn(),
+            findMany: vi.fn(),
+            update: vi.fn(),
+            updateMany: vi.fn(),
+            delete: vi.fn(),
+            deleteMany: vi.fn(),
+        };
     }
 
     return {

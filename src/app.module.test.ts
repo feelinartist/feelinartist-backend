@@ -11,7 +11,7 @@ describe('AppModule', () => {
     const appModule = new AppModule();
     appModule.configure(consumer);
 
-    expect(consumer.apply).toHaveBeenCalledTimes(2);
-    expect(forRoutes).toHaveBeenCalledTimes(2);
+    expect(consumer.apply).toHaveBeenCalledTimes(3);
+    expect(forRoutes).toHaveBeenCalledTimes(3);
   });
 });
