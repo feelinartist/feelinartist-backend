@@ -33,9 +33,16 @@ export class AuthService {
     }
 
     private async verificarGoogleToken(idToken: string) {
-        const clientId = await configService.get('GOOGLE_CLIENT_ID');
-        const client = new OAuth2Client(clientId);
+        let clientId = process.env.GOOGLE_CLIENT_ID;
+        if (!clientId) {
+            try {
+                clientId = await configService.get('GOOGLE_CLIENT_ID');
+            } catch (err) {
+                throw new Error("El GOOGLE_CLIENT_ID no está configurado en las variables de entorno ni en la base de datos.");
+            }
+        }
         
+        const client = new OAuth2Client(clientId);
         try {
             const ticket = await client.verifyIdToken({
                 idToken,
