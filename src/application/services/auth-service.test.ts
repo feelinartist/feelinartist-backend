@@ -3,6 +3,7 @@ import { AuthService } from './auth-service';
 import { RepositorioUsuario } from '../../domain/repositories/user-repository';
 import { RepositorioAuth } from '../../domain/repositories/auth-repository';
 import { redisService } from '../../infrastructure/services/redis-service';
+import { configService } from '../../infrastructure/services/config-service';
 import jwt from 'jsonwebtoken';
 
 const mocks = vi.hoisted(() => ({
@@ -162,6 +163,19 @@ describe('AuthService', () => {
             const result = await authService.iniciarSesion('valid-id-token');
 
             expect(result).toBeNull();
+        });
+
+        it('debería lanzar error si el GOOGLE_CLIENT_ID no está en env ni en DB', async () => {
+            const originalEnv = process.env.GOOGLE_CLIENT_ID;
+            delete process.env.GOOGLE_CLIENT_ID;
+            
+            const configServiceMock = vi.mocked(configService.get);
+            configServiceMock.mockRejectedValueOnce(new Error('Configuración no encontrada'));
+
+            await expect(authService.iniciarSesion('valid-id-token'))
+                .rejects.toThrow('El GOOGLE_CLIENT_ID no está configurado en las variables de entorno ni en la base de datos: Configuración no encontrada');
+
+            process.env.GOOGLE_CLIENT_ID = originalEnv;
         });
     });
 

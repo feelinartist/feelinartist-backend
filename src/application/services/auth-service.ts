@@ -37,8 +37,8 @@ export class AuthService {
         if (!clientId) {
             try {
                 clientId = await configService.get('GOOGLE_CLIENT_ID');
-            } catch (err) {
-                throw new Error("El GOOGLE_CLIENT_ID no está configurado en las variables de entorno ni en la base de datos.");
+            } catch (err: any) {
+                throw new Error(`El GOOGLE_CLIENT_ID no está configurado en las variables de entorno ni en la base de datos: ${err.message}`);
             }
         }
         
