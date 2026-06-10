@@ -136,7 +136,7 @@ describe('AuthService', () => {
             });
 
             await expect(authService.iniciarSesion('valid-id-token'))
-                .rejects.toThrow('Token de Google inválido o expirado: Token de Google inválido o sin correo');
+                .rejects.toThrow('Token de Google inválido o expirado');
         });
 
         it('debería lanzar error si el payload de Google es undefined', async () => {
@@ -145,14 +145,14 @@ describe('AuthService', () => {
             });
 
             await expect(authService.iniciarSesion('valid-id-token'))
-                .rejects.toThrow('Token de Google inválido o expirado: Token de Google inválido o sin correo');
+                .rejects.toThrow('Token de Google inválido o expirado');
         });
 
         it('debería usar Error desconocido si el error capturado no tiene message', async () => {
             mocks.verifyIdToken.mockRejectedValueOnce('Error de red tipo string');
 
             await expect(authService.iniciarSesion('valid-id-token'))
-                .rejects.toThrow('Token de Google inválido o expirado: Error desconocido');
+                .rejects.toThrow('Token de Google inválido o expirado');
         });
         it('debería usar strings vacíos si el payload de Google no tiene nombre ni imagen', async () => {
             mocks.verifyIdToken.mockResolvedValueOnce({

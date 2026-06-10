@@ -41,6 +41,8 @@ uploads
 scratch/
 *.sqlite
 *.sqlite-journal
+*.postman_collection.json
+*.postman_environment.json
 
 # Agent / Tooling
 .gemini/

@@ -60,7 +60,8 @@ export class AuthService {
                 imagen: payload.picture || ''
             };
         } catch (error: any) {
-            throw new Error(`Token de Google inválido o expirado: ${error?.message || 'Error desconocido'}`);
+            console.error('Error al verificar Google Token:', error);
+            throw new Error('Token de Google inválido o expirado');
         }
     }
 

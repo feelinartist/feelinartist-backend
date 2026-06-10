@@ -114,4 +114,65 @@ describe('ControladorConfigPublica', () => {
             errorSpy.mockRestore();
         });
     });
+
+    describe('obtenerCategoriasArtista', () => {
+        it('should return parsed JSON array', async () => {
+            (globalThis as any).mockConfigServiceGet.mockResolvedValue('["DJ", "Cantante"]');
+            await controller.obtenerCategoriasArtista(req as Request, res as Response);
+            expect(jsonMock).toHaveBeenCalledWith(['DJ', 'Cantante']);
+        });
+
+        it('should fallback to comma separated array if JSON parsing fails', async () => {
+            (globalThis as any).mockConfigServiceGet.mockResolvedValue('DJ, Cantante, Pintor');
+            await controller.obtenerCategoriasArtista(req as Request, res as Response);
+            expect(jsonMock).toHaveBeenCalledWith(['DJ', 'Cantante', 'Pintor']);
+        });
+
+        it('should return empty array if not configured', async () => {
+            (globalThis as any).mockConfigServiceGet.mockResolvedValue(null);
+            await controller.obtenerCategoriasArtista(req as Request, res as Response);
+            expect(jsonMock).toHaveBeenCalledWith([]);
+        });
+
+        it('should return 500 on internal error', async () => {
+            (globalThis as any).mockConfigServiceGet.mockRejectedValue(new Error('DB Error'));
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            await controller.obtenerCategoriasArtista(req as Request, res as Response);
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({ error: 'Error interno' });
+            errorSpy.mockRestore();
+        });
+    });
+
+    describe('obtenerRedesSociales', () => {
+        it('should return parsed JSON array', async () => {
+            (globalThis as any).mockConfigServiceGet.mockResolvedValue('["Facebook", "Instagram"]');
+            await controller.obtenerRedesSociales(req as Request, res as Response);
+            expect(jsonMock).toHaveBeenCalledWith(['Facebook', 'Instagram']);
+        });
+
+        it('should return 500 on internal error', async () => {
+            (globalThis as any).mockConfigServiceGet.mockRejectedValue(new Error('DB Error'));
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            await controller.obtenerRedesSociales(req as Request, res as Response);
+            expect(statusMock).toHaveBeenCalledWith(500);
+            errorSpy.mockRestore();
+        });
+    });
+
+    describe('obtenerMetodosDonacion', () => {
+        it('should return parsed JSON array', async () => {
+            (globalThis as any).mockConfigServiceGet.mockResolvedValue('["Paypal", "Yape"]');
+            await controller.obtenerMetodosDonacion(req as Request, res as Response);
+            expect(jsonMock).toHaveBeenCalledWith(['Paypal', 'Yape']);
+        });
+
+        it('should return 500 on internal error', async () => {
+            (globalThis as any).mockConfigServiceGet.mockRejectedValue(new Error('DB Error'));
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            await controller.obtenerMetodosDonacion(req as Request, res as Response);
+            expect(statusMock).toHaveBeenCalledWith(500);
+            errorSpy.mockRestore();
+        });
+    });
 });

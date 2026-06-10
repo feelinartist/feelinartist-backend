@@ -41,7 +41,10 @@ vi.mock('../presentation/controllers/controlador-autenticacion', () => ({
 }));
 
 const mockControladorConfigPublica = {
-    obtenerCredencialesAuth: vi.fn()
+    obtenerCredencialesAuth: vi.fn(),
+    obtenerCategoriasArtista: vi.fn(),
+    obtenerRedesSociales: vi.fn(),
+    obtenerMetodosDonacion: vi.fn()
 };
 vi.mock('../presentation/controllers/controlador-config-publica', () => ({
     ControladorConfigPublica: class {
@@ -187,6 +190,7 @@ import { HealthController } from './health/health.controller';
 import { ImagesController } from './images/images.controller';
 import { OrdersController } from './orders/orders.controller';
 import { PublicConfigController } from './public-config/public-config.controller';
+import { CatalogsController } from './public-config/catalogs.controller';
 import { SocketGateway } from './sockets/socket.gateway';
 import { StatisticsController } from './statistics/statistics.controller';
 import { SystemConfigController } from './system-config/system-config.controller';
@@ -342,6 +346,18 @@ describe('NestJS Modules Controllers delegation tests', () => {
         const controller = new PublicConfigController();
         controller.obtenerCredencialesAuth(req as Request, res as Response);
         expect(mockControladorConfigPublica.obtenerCredencialesAuth).toHaveBeenCalledWith(req, res);
+    });
+
+    it('CatalogsController', () => {
+        const controller = new CatalogsController();
+        controller.obtenerCategoriasArtista(req as Request, res as Response);
+        expect(mockControladorConfigPublica.obtenerCategoriasArtista).toHaveBeenCalledWith(req, res);
+
+        controller.obtenerRedesSociales(req as Request, res as Response);
+        expect(mockControladorConfigPublica.obtenerRedesSociales).toHaveBeenCalledWith(req, res);
+
+        controller.obtenerMetodosDonacion(req as Request, res as Response);
+        expect(mockControladorConfigPublica.obtenerMetodosDonacion).toHaveBeenCalledWith(req, res);
     });
 
     it('StatisticsController', () => {
