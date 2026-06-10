@@ -1,4 +1,4 @@
-import { RedSocial, MetodoDonacion } from '@prisma/client';
+import { RedSocial, MetodoDonacion, CategoriaArtista } from '@prisma/client';
 import { Rol } from '../entities/user';
 
 export interface RepositorioConfig {
@@ -13,6 +13,12 @@ export interface RepositorioConfig {
     crearMetodoDonacion(data: { nombre: string }): Promise<MetodoDonacion>;
     actualizarMetodoDonacion(id: string, data: Partial<MetodoDonacion>): Promise<MetodoDonacion>;
     eliminarMetodoDonacion(id: string): Promise<MetodoDonacion>;
+
+    // Categorias Artista
+    listarCategoriasArtista(): Promise<CategoriaArtista[]>;
+    crearCategoriaArtista(data: { nombre: string }): Promise<CategoriaArtista>;
+    actualizarCategoriaArtista(id: string, data: Partial<CategoriaArtista>): Promise<CategoriaArtista>;
+    eliminarCategoriaArtista(id: string): Promise<CategoriaArtista>;
 
     // Roles
     listarRoles(): Promise<Rol[]>;

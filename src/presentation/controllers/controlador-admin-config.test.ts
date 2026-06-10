@@ -13,6 +13,10 @@ vi.mock('../../infrastructure/repositories/prisma-config-repository', () => {
             crearMetodoDonacion = (...args: any[]) => (globalThis as any).mockCrearMetodoDonacion(...args);
             actualizarMetodoDonacion = (...args: any[]) => (globalThis as any).mockActualizarMetodoDonacion(...args);
             eliminarMetodoDonacion = (...args: any[]) => (globalThis as any).mockEliminarMetodoDonacion(...args);
+            listarCategoriasArtista = (...args: any[]) => (globalThis as any).mockListarCategoriasArtista(...args);
+            crearCategoriaArtista = (...args: any[]) => (globalThis as any).mockCrearCategoriaArtista(...args);
+            actualizarCategoriaArtista = (...args: any[]) => (globalThis as any).mockActualizarCategoriaArtista(...args);
+            eliminarCategoriaArtista = (...args: any[]) => (globalThis as any).mockEliminarCategoriaArtista(...args);
             listarRoles = (...args: any[]) => (globalThis as any).mockListarRoles(...args);
         }
     };
@@ -27,6 +31,10 @@ vi.mock('../../infrastructure/repositories/prisma-config-repository', () => {
 (globalThis as any).mockCrearMetodoDonacion = vi.fn();
 (globalThis as any).mockActualizarMetodoDonacion = vi.fn();
 (globalThis as any).mockEliminarMetodoDonacion = vi.fn();
+(globalThis as any).mockListarCategoriasArtista = vi.fn();
+(globalThis as any).mockCrearCategoriaArtista = vi.fn();
+(globalThis as any).mockActualizarCategoriaArtista = vi.fn();
+(globalThis as any).mockEliminarCategoriaArtista = vi.fn();
 (globalThis as any).mockListarRoles = vi.fn();
 
 import { ControladorAdminConfig } from './controlador-admin-config';
@@ -291,6 +299,122 @@ describe('ControladorAdminConfig', () => {
 
             expect(statusMock).toHaveBeenCalledWith(500);
             expect(jsonMock).toHaveBeenCalledWith({ message: 'Error al eliminar método de donación' });
+            expect(consoleSpy).toHaveBeenCalled();
+            consoleSpy.mockRestore();
+        });
+    });
+
+    describe('listarCategoriasArtista', () => {
+        it('should return categories list and 200 status', async () => {
+            const mockCats = [{ id: 'cat-1', nombre: 'DJ' }];
+            (globalThis as any).mockListarCategoriasArtista.mockResolvedValue(mockCats);
+
+            await controller.listarCategoriasArtista(req as Request, res as Response);
+
+            expect((globalThis as any).mockListarCategoriasArtista).toHaveBeenCalled();
+            expect(statusMock).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith(mockCats);
+        });
+
+        it('should return 500 status on repository error', async () => {
+            (globalThis as any).mockListarCategoriasArtista.mockRejectedValue(new Error('DB error'));
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            await controller.listarCategoriasArtista(req as Request, res as Response);
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Error al listar categorías de artista' });
+            expect(consoleSpy).toHaveBeenCalled();
+            consoleSpy.mockRestore();
+        });
+    });
+
+    describe('crearCategoriaArtista', () => {
+        it('should return 400 if nombre is missing', async () => {
+            req.body = {};
+
+            await controller.crearCategoriaArtista(req as Request, res as Response);
+
+            expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Nombre requerido' });
+        });
+
+        it('should create category and return 201 status', async () => {
+            const mockBody = { nombre: 'DJ' };
+            const mockCreated = { id: 'cat-1', ...mockBody };
+            (globalThis as any).mockCrearCategoriaArtista.mockResolvedValue(mockCreated);
+            req.body = mockBody;
+
+            await controller.crearCategoriaArtista(req as Request, res as Response);
+
+            expect((globalThis as any).mockCrearCategoriaArtista).toHaveBeenCalledWith(mockBody);
+            expect(statusMock).toHaveBeenCalledWith(201);
+            expect(jsonMock).toHaveBeenCalledWith(mockCreated);
+        });
+
+        it('should return 500 status on repository error', async () => {
+            req.body = { nombre: 'DJ' };
+            (globalThis as any).mockCrearCategoriaArtista.mockRejectedValue(new Error('DB error'));
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            await controller.crearCategoriaArtista(req as Request, res as Response);
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Error al crear categoría de artista' });
+            expect(consoleSpy).toHaveBeenCalled();
+            consoleSpy.mockRestore();
+        });
+    });
+
+    describe('actualizarCategoriaArtista', () => {
+        it('should update category and return 200 status', async () => {
+            req.params = { id: 'cat-1' };
+            req.body = { nombre: 'Banda' };
+            const mockUpdated = { id: 'cat-1', nombre: 'Banda' };
+            (globalThis as any).mockActualizarCategoriaArtista.mockResolvedValue(mockUpdated);
+
+            await controller.actualizarCategoriaArtista(req as Request, res as Response);
+
+            expect((globalThis as any).mockActualizarCategoriaArtista).toHaveBeenCalledWith('cat-1', { nombre: 'Banda' });
+            expect(statusMock).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith(mockUpdated);
+        });
+
+        it('should return 500 status on repository error', async () => {
+            req.params = { id: 'cat-1' };
+            (globalThis as any).mockActualizarCategoriaArtista.mockRejectedValue(new Error('DB error'));
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            await controller.actualizarCategoriaArtista(req as Request, res as Response);
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Error al actualizar categoría de artista' });
+            expect(consoleSpy).toHaveBeenCalled();
+            consoleSpy.mockRestore();
+        });
+    });
+
+    describe('eliminarCategoriaArtista', () => {
+        it('should delete category and return 200 status', async () => {
+            req.params = { id: 'cat-1' };
+            (globalThis as any).mockEliminarCategoriaArtista.mockResolvedValue(undefined);
+
+            await controller.eliminarCategoriaArtista(req as Request, res as Response);
+
+            expect((globalThis as any).mockEliminarCategoriaArtista).toHaveBeenCalledWith('cat-1');
+            expect(statusMock).toHaveBeenCalledWith(200);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Categoría de artista eliminada' });
+        });
+
+        it('should return 500 status on repository error', async () => {
+            req.params = { id: 'cat-1' };
+            (globalThis as any).mockEliminarCategoriaArtista.mockRejectedValue(new Error('DB error'));
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            await controller.eliminarCategoriaArtista(req as Request, res as Response);
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Error al eliminar categoría de artista' });
             expect(consoleSpy).toHaveBeenCalled();
             consoleSpy.mockRestore();
         });

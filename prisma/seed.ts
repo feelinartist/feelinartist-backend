@@ -80,7 +80,7 @@ async function main() {
                 nombre: red.nombre,
                 urlBase: red.urlBase,
                 icono: red.icono,
-                activo: true
+                estado: 'ACTIVO'
             }
         });
     }
@@ -94,8 +94,24 @@ async function main() {
             create: {
                 nombre: metodo.nombre,
                 icono: metodo.icono,
-                activo: true
+                estado: 'ACTIVO'
             }
+        });
+    }
+
+    // 5. Seed Categorias Artista
+    console.log('   - Seeding Categorias Artista...');
+    const categorias = [
+        { nombre: 'DJ' },
+        { nombre: 'Banda' },
+        { nombre: 'Solista' },
+        { nombre: 'Orquesta' }
+    ];
+    for (const cat of categorias) {
+        await prisma.categoriaArtista.upsert({
+            where: { nombre: cat.nombre },
+            update: {},
+            create: { nombre: cat.nombre, estado: 'ACTIVO' }
         });
     }
 

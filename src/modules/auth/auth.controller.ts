@@ -10,4 +10,9 @@ export class AuthController {
     iniciarSesion(@Req() req: Request, @Res() res: Response) {
         return this.controlador.iniciarSesion(req, res);
     }
+
+    @Post('register')
+    registrar(@Req() req: Request, @Res() res: Response) {
+        return this.controlador.registrar(req, res);
+    }
 }

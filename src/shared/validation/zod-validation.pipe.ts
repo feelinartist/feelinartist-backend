@@ -13,8 +13,8 @@ export class ZodValidationPipe implements PipeTransform {
             if (error instanceof z.ZodError) {
                 throw new BadRequestException({
                     message: metadata?.type === 'query'
-                        ? 'Error de validaciÃ³n en parÃ¡metros'
-                        : 'Error de validaciÃ³n',
+                        ? 'Error de validación en parámetros'
+                        : 'Error de validación',
                     errors: error.issues.map(err => ({
                         field: err.path.join('.'),
                         message: err.message,

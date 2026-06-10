@@ -165,43 +165,82 @@ export class ControladorUsuario {
 
     async actualizarRol(req: Request, res: Response) {
         try {
-            const { correo, rol, ...datosPerfil } = req.body;
-
-            if (!correo || !rol) {
-                return res.status(400).json({ message: 'Correo y rol son requeridos' });
+            const correo = req.user?.email;
+            if (!correo) {
+                return res.status(401).json({ message: 'Usuario no autenticado o token inválido' });
             }
 
-            let datosArtista = undefined;
-            let datosPublico = undefined;
-            let datosDiscoteca: Record<string, unknown> | undefined = undefined;
-            const nombreUsuario = datosPerfil.nombreUsuario;
-            let nombre = undefined;
+            const {
+                rol,
+                nombreUsuario,
+                nombre,
+                nombreArtistico,
+                imagen,
+                zonaHoraria,
+                codigoTelefono,
+                numeroTelefono,
+                generosFavoritos,
+                ciudadId,
+                paisId,
+                ciudad,
+                pais,
+                categoria,
+                categoriaId,
+                fechaFundacion,
+                datosPerfilArtista,
+                datosPerfilPublico,
+                datosDiscoteca,
+                ...restoBody
+            } = req.body;
+
+            if (!rol) {
+                return res.status(400).json({ message: 'El rol es requerido' });
+            }
+
+            let finalNombre = undefined;
+            let finalDatosArtista = undefined;
+            let finalDatosPublico = undefined;
+            let finalDatosDiscoteca = undefined;
 
             if (rol === 'ARTISTA') {
-                const { nombreArtistico, ciudadId, paisId, ...restoArtista } = datosPerfil;
-                datosArtista = {
-                    ...restoArtista,
-                    ciudad: ciudadId,
-                    pais: paisId
+                finalNombre = nombreArtistico;
+                finalDatosArtista = {
+                    categoria,
+                    categoriaId,
+                    ...restoBody,
+                    ...datosPerfilArtista
                 };
-                nombre = nombreArtistico;
             } else if (rol === 'PUBLICO') {
-                const { nombre: nombrePublico, ...restoPublico } = datosPerfil;
-                datosPublico = restoPublico;
-                nombre = nombrePublico;
-            } else if (rol === 'DISCOTECA') {
-                datosDiscoteca = {
-                    ciudad: datosPerfil.ciudadId,
-                    pais: datosPerfil.paisId,
-                    fechaFundacion: datosPerfil.fechaFundacion,
-                    codigoTelefono: datosPerfil.codigoTelefono,
-                    numeroTelefono: datosPerfil.numeroTelefono,
-                    zonaHoraria: datosPerfil.zonaHoraria
+                finalNombre = nombre;
+                finalDatosPublico = {
+                    ...restoBody,
+                    ...datosPerfilPublico
                 };
-                nombre = datosPerfil.nombre;
+            } else if (rol === 'DISCOTECA') {
+                finalNombre = nombre;
+                finalDatosDiscoteca = {
+                    fechaFundacion,
+                    ...restoBody,
+                    ...datosDiscoteca
+                };
             }
 
-            const usuario = await actualizarRolUsuarioCasoUso.ejecutar(correo, rol, datosArtista, datosPublico, datosDiscoteca, nombreUsuario, nombre);
+            const usuario = await actualizarRolUsuarioCasoUso.ejecutar({
+                correo,
+                nombreRol: rol,
+                datosPerfilArtista: finalDatosArtista,
+                datosPerfilPublico: finalDatosPublico,
+                datosDiscoteca: finalDatosDiscoteca,
+                nombreUsuario,
+                nombre: finalNombre,
+                imagen,
+                zonaHoraria,
+                codigoTelefono,
+                numeroTelefono,
+                ciudad: ciudadId || ciudad,
+                pais: paisId || pais,
+                generosFavoritos
+            });
 
             // Generate a fresh JWT with the updated role
             const token = generateToken({
@@ -265,7 +304,7 @@ export class ControladorUsuario {
                 urlSoundCloudFavorito,
                 // Administration
                 rol,
-                estadoCuenta
+                estado
             } = req.body;
 
             if (!usuarioId) {
@@ -299,7 +338,7 @@ export class ControladorUsuario {
                 urlYoutubeFavorito,
                 urlSoundCloudFavorito,
                 rol,
-                estadoCuenta
+                estado
             });
 
             return res.status(200).json(usuario);

@@ -28,6 +28,7 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
                 nombre: datos.nombre,
                 imagen: datos.imagen,
                 nombreUsuario: datos.nombreUsuario,
+                zonaHoraria: datos.zonaHoraria,
                 rol: datos.rol ? {
                     connect: { nombre: datos.rol }
                 } : undefined,
@@ -35,10 +36,13 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
             include: { rol: true }
         });
 
-        // Update creadoPor with the user's own ID after creation
+        // Update creadoPor and actualizadoPor with the user's own ID after creation
         await prisma.usuario.update({
             where: { id: usuario.id },
-            data: { creadoPor: usuario.id }
+            data: { 
+                creadoPor: usuario.id,
+                actualizadoPor: usuario.id
+            }
         });
 
         return this.mapToEntity(usuario);
@@ -170,14 +174,29 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
             };
         }
 
-        if (datos.nombre) datosActualizacion.nombre = datos.nombre;
-        if (datos.imagen) datosActualizacion.imagen = datos.imagen;
-        if (datos.nombreUsuario) datosActualizacion.nombreUsuario = datos.nombreUsuario;
-        if (datos.ultimoCambioNombreUsuario) datosActualizacion.ultimoCambioNombreUsuario = datos.ultimoCambioNombreUsuario;
-        if (datos.ultimoCambioNombre) datosActualizacion.ultimoCambioNombre = datos.ultimoCambioNombre;
-        if (datos.estadoCuenta) datosActualizacion.estadoCuenta = datos.estadoCuenta;
-        if (datos.fechaEliminacionProgramada) datosActualizacion.fechaEliminacionProgramada = datos.fechaEliminacionProgramada;
-        if (datos.perfilCompletadoReconocido !== undefined) datosActualizacion.perfilCompletadoReconocido = datos.perfilCompletadoReconocido;
+        const directKeys = [
+            'nombre',
+            'imagen',
+            'nombreUsuario',
+            'ultimoCambioNombreUsuario',
+            'ultimoCambioNombre',
+            'estado',
+            'fechaEliminacionProgramada',
+            'perfilCompletadoReconocido',
+            'zonaHoraria',
+            'codigoTelefono',
+            'numeroTelefono',
+            'ciudad',
+            'pais',
+            'generosFavoritos'
+        ] as const;
+
+        for (const key of directKeys) {
+            const val = datos[key];
+            if (val !== undefined) {
+                datosActualizacion[key] = val;
+            }
+        }
 
         // Audit field: track who is updating
         datosActualizacion.actualizadoPor = id;
@@ -189,7 +208,7 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
         if (datos.perfilPublico) {
             datosActualizacion.perfilPublico = {
                 upsert: {
-                    create: { ...datos.perfilPublico, creadoPor: id },
+                    create: { ...datos.perfilPublico, creadoPor: id, actualizadoPor: id },
                     update: { ...datos.perfilPublico, actualizadoPor: id }
                 }
             };
@@ -198,7 +217,7 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
         if (datos.perfilDiscoteca) {
             datosActualizacion.perfilDiscoteca = {
                 upsert: {
-                    create: { ...datos.perfilDiscoteca, creadoPor: id },
+                    create: { ...datos.perfilDiscoteca, creadoPor: id, actualizadoPor: id },
                     update: { ...datos.perfilDiscoteca, actualizadoPor: id }
                 }
             };
@@ -244,8 +263,7 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
         const usuarios = await prisma.usuario.findMany({
             where: {
                 rol: { nombre: 'ARTISTA' },
-                estadoCuenta: 'ACTIVO',
-                // Exclude users who blocked the requester or are blocked by the requester
+                estado: 'ACTIVO',
                 ...(usuarioSolicitanteId ? {
                     bloqueados: { none: { bloqueadoId: usuarioSolicitanteId } },
                     bloqueadoPor: { none: { bloqueadorId: usuarioSolicitanteId } },
@@ -257,12 +275,7 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
                             { nombreUsuario: { contains: termino } }
                         ]
                     } : {},
-                    paisId ? {
-                        OR: [
-                            { perfilArtista: { pais: { contains: paisId } } },
-                            { perfilDiscoteca: { pais: { contains: paisId } } }
-                        ]
-                    } : {}
+                    paisId ? { pais: { contains: paisId } } : {}
                 ]
             },
             include: usuarioInclude
@@ -282,7 +295,9 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
             OR: [
                 { nombre: { contains: termino } },
                 { correo: { contains: termino } },
-                { nombreUsuario: { contains: termino } }
+                { nombreUsuario: { contains: termino } },
+                { rol: { nombre: { contains: termino } } },
+                { perfilDiscoteca: { nombreLocal: { contains: termino } } }
             ]
         } : {};
 
@@ -352,9 +367,15 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
             imagen: prismaUser.imagen,
             nombreUsuario: prismaUser.nombreUsuario,
             rol: prismaUser.rol ? { id: prismaUser.rol.id, nombre: prismaUser.rol.nombre } : null,
+            // Centralized fields
+            zonaHoraria: prismaUser.zonaHoraria,
+            codigoTelefono: prismaUser.codigoTelefono,
+            numeroTelefono: prismaUser.numeroTelefono,
+            ciudad: prismaUser.ciudad,
+            pais: prismaUser.pais,
+            generosFavoritos: prismaUser.generosFavoritos ?? [],
             perfilArtista: prismaUser.perfilArtista ? {
-                ...prismaUser.perfilArtista,
-                // Ensure dates/decimals are handled if needed, but for now spread is okay
+                ...prismaUser.perfilArtista
             } : undefined,
             perfilPublico: prismaUser.perfilPublico ? {
                 ...prismaUser.perfilPublico
@@ -366,7 +387,7 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
             actualizadoEn: prismaUser.actualizadoEn,
             ultimoCambioNombreUsuario: prismaUser.ultimoCambioNombreUsuario,
             ultimoCambioNombre: prismaUser.ultimoCambioNombre,
-            estadoCuenta: prismaUser.estadoCuenta,
+            estado: prismaUser.estado,
             fechaEliminacionProgramada: prismaUser.fechaEliminacionProgramada,
             perfilCompletadoReconocido: prismaUser.perfilCompletadoReconocido,
         };
@@ -403,11 +424,21 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
 
     private async preparePerfilArtistaUpsert(id: string, perfilArtistaDto: any): Promise<any> {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { redesSociales, metodosDonacion, galeria, pagoQR, musicQR, nombreQR, urlPago, nombreUsuario: _nombreUsuario, ...perfilArtistaData } = perfilArtistaDto;
+        const { redesSociales, metodosDonacion, galeria, pagoQR, musicQR, nombreQR, urlPago, nombreUsuario: _nombreUsuario, categoria, categoriaId, ...perfilArtistaData } = perfilArtistaDto;
+
+        let finalCategoriaId = (categoriaId || categoria) as string;
+        if (!finalCategoriaId) {
+            const defaultCat = await prisma.categoriaArtista.findFirst({
+                where: { OR: [{ nombre: 'Solista' }, { nombre: 'SOLISTA' }, { nombre: 'DJ' }] }
+            });
+            if (defaultCat) {
+                finalCategoriaId = defaultCat.id;
+            }
+        }
 
         const nestedUpdate = await this.buildNestedUpdate({
             id,
-            perfilArtistaData,
+            perfilArtistaData: finalCategoriaId ? { ...perfilArtistaData, categoriaId: finalCategoriaId } : perfilArtistaData,
             pagoQR,
             musicQR,
             nombreQR,
@@ -419,14 +450,15 @@ export class RepositorioUsuarioPrisma implements RepositorioUsuario {
         const createRelations = this.buildCreateRelations(id, redesSociales, metodosDonacion, galeria);
 
         const createData = {
-            categoria: 'SOLISTA',
+            categoriaId: finalCategoriaId,
             biografia: '',
             tarifaPorHora: 0,
             moneda: 'PEN',
-            zonaHoraria: 'America/Lima',
+            // zonaHoraria will be set on Usuario level, not here
             ...perfilArtistaData,
             lugaresConocidos: perfilArtistaData.lugaresConocidos,
             creadoPor: id,
+            actualizadoPor: id,
             pagoQR: pagoQR as string | undefined,
             musicQR: musicQR as string | undefined,
             nombreQR: nombreQR as string | undefined,

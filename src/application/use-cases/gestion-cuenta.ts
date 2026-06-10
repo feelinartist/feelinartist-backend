@@ -9,7 +9,7 @@ export class GestionCuentaCasoUso {
         if (!usuario) throw new Error("Usuario no encontrado");
 
         return this.repositorioUsuario.actualizar(usuarioId, {
-            estadoCuenta: 'DESHABILITADO'
+            estado: 'DESHABILITADO'
         });
     }
 
@@ -21,7 +21,7 @@ export class GestionCuentaCasoUso {
         fechaEliminacion.setDate(fechaEliminacion.getDate() + 30);
 
         return this.repositorioUsuario.actualizar(usuarioId, {
-            estadoCuenta: 'ELIMINACION_PENDIENTE',
+            estado: 'ELIMINACION_PENDIENTE',
             fechaEliminacionProgramada: fechaEliminacion
         });
     }
@@ -31,7 +31,7 @@ export class GestionCuentaCasoUso {
         if (!usuario) throw new Error("Usuario no encontrado");
 
         return this.repositorioUsuario.actualizar(usuarioId, {
-            estadoCuenta: 'ACTIVO',
+            estado: 'ACTIVO',
             fechaEliminacionProgramada: null
         });
     }
@@ -41,7 +41,7 @@ export class GestionCuentaCasoUso {
         if (!usuario) throw new Error("Usuario no encontrado");
 
         return this.repositorioUsuario.actualizar(usuarioId, {
-            estadoCuenta: 'BANEADO'
+            estado: 'BANEADO'
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any); // Type cast due to possible enum lag in generated types
     }

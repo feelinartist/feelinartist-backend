@@ -245,12 +245,12 @@ describe('ActualizarUsuarioCasoUso', () => {
             );
 
             expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', expect.objectContaining({
+                pais: 'Colombia',
+                ciudad: 'Medellin',
+                zonaHoraria: 'America/Bogota',
+                numeroTelefono: '123456789',
+                codigoTelefono: '+57',
                 perfilArtista: {
-                    pais: 'Colombia',
-                    ciudad: 'Medellin',
-                    zonaHoraria: 'America/Bogota',
-                    numeroTelefono: '123456789',
-                    codigoTelefono: '+57',
                     redesSociales: [{ red: 'instagram', url: '...' }],
                     metodosDonacion: [{ metodo: 'paypal', url: '...' }],
                     galeria: ['img1.jpg'],
@@ -290,8 +290,8 @@ describe('ActualizarUsuarioCasoUso', () => {
             expect(mockGenerateQrFn).not.toHaveBeenCalled();
             expect(mockUploadImageFn).not.toHaveBeenCalled();
             expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', expect.objectContaining({
+                pais: 'Colombia',
                 perfilArtista: {
-                    pais: 'Colombia',
                     biografia: 'Bio sin cambiar username',
                 }
             }));
@@ -339,13 +339,12 @@ describe('ActualizarUsuarioCasoUso', () => {
             });
 
             expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', expect.objectContaining({
-                perfilPublico: {
-                    pais: 'Colombia',
-                    ciudad: 'Cali',
-                    zonaHoraria: 'America/Bogota',
-                    numeroTelefono: '987654321',
-                    codigoTelefono: '+57',
-                }
+                pais: 'Colombia',
+                ciudad: 'Cali',
+                zonaHoraria: 'America/Bogota',
+                numeroTelefono: '987654321',
+                codigoTelefono: '+57',
+                perfilPublico: {}
             }));
         });
 
@@ -370,12 +369,12 @@ describe('ActualizarUsuarioCasoUso', () => {
             });
 
             expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', expect.objectContaining({
+                pais: 'Colombia',
+                ciudad: 'Medellin',
+                zonaHoraria: 'America/Bogota',
+                numeroTelefono: '987654321',
+                codigoTelefono: '+57',
                 perfilDiscoteca: {
-                    pais: 'Colombia',
-                    ciudad: 'Medellin',
-                    zonaHoraria: 'America/Bogota',
-                    numeroTelefono: '987654321',
-                    codigoTelefono: '+57',
                     fechaFundacion: new Date('2010-05-10'),
                 }
             }));
@@ -401,14 +400,33 @@ describe('ActualizarUsuarioCasoUso', () => {
             });
 
             expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', expect.objectContaining({
-                perfilPublico: {
-                    pais: 'Colombia',
-                    ciudad: 'Bogota',
-                    zonaHoraria: 'America/Bogota',
-                    numeroTelefono: '555555',
-                    codigoTelefono: '+57',
-                    imagen: 'perfil.jpg',
-                }
+                pais: 'Colombia',
+                ciudad: 'Bogota',
+                zonaHoraria: 'America/Bogota',
+                numeroTelefono: '555555',
+                codigoTelefono: '+57',
+                imagen: 'perfil.jpg',
+                perfilPublico: {}
+            }));
+        });
+
+        it('debe actualizar generosFavoritos si se definen en el dto', async () => {
+            const usuarioMock = {
+                id: '123',
+                rol: { nombre: 'PUBLICO' },
+                perfilPublico: {},
+            };
+
+            mockRepositorioUsuario.buscarPorId.mockResolvedValue(usuarioMock);
+            mockRepositorioUsuario.actualizar.mockResolvedValue(usuarioMock);
+
+            await casoUso.ejecutar({
+                usuarioId: '123',
+                generosFavoritos: ['Rock', 'Jazz'],
+            });
+
+            expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', expect.objectContaining({
+                generosFavoritos: ['Rock', 'Jazz'],
             }));
         });
     });

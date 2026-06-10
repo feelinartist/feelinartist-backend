@@ -76,7 +76,7 @@ describe('RepositorioUsuarioPrisma', () => {
             );
             expect(prisma.usuario.update).toHaveBeenCalledWith({
                 where: { id: 'user-1' },
-                data: { creadoPor: 'user-1' }
+                data: { creadoPor: 'user-1', actualizadoPor: 'user-1' }
             });
             expect(result.id).toBe('user-1');
         });
@@ -359,7 +359,7 @@ describe('RepositorioUsuarioPrisma', () => {
             await repository.actualizar('user-1', {
                 ultimoCambioNombreUsuario,
                 ultimoCambioNombre,
-                estadoCuenta: 'ACTIVO',
+                estado: 'ACTIVO',
                 perfilCompletadoReconocido: true,
                 perfilArtista: {
                     redesSociales: [
@@ -374,7 +374,7 @@ describe('RepositorioUsuarioPrisma', () => {
                 data: expect.objectContaining({
                     ultimoCambioNombreUsuario,
                     ultimoCambioNombre,
-                    estadoCuenta: 'ACTIVO',
+                    estado: 'ACTIVO',
                     perfilCompletadoReconocido: true,
                     perfilArtista: expect.objectContaining({
                         upsert: expect.objectContaining({
@@ -475,6 +475,7 @@ describe('RepositorioUsuarioPrisma', () => {
             vi.mocked(prisma.perfilArtista.findUnique)
                 .mockResolvedValueOnce(null) // first call inside preparePerfilArtistaUpsert -> buildNestedUpdate -> deleteOldPagoQR
                 .mockResolvedValueOnce(null); // second call inside deleteOldGaleria
+            vi.mocked((prisma as any).categoriaArtista.findFirst).mockResolvedValueOnce({ id: 'default-cat-id', nombre: 'Solista' });
 
             await repository.actualizar('user-1', {
                 perfilArtista: {
@@ -487,6 +488,27 @@ describe('RepositorioUsuarioPrisma', () => {
 
             expect(prisma.usuario.update).toHaveBeenCalled();
             expect((globalThis as any).mockDeleteImageImpl).not.toHaveBeenCalled();
+        });
+
+        it('actualizar: should fallback when defaultCat is null in preparePerfilArtistaUpsert', async () => {
+            const mockUserBefore = { id: 'user-1', nombreUsuario: 'testold' };
+            const mockUserAfter = { id: 'user-1', nombreUsuario: 'testnew' };
+
+            vi.mocked(prisma.usuario.findUnique).mockResolvedValue(mockUserBefore as any);
+            vi.mocked(prisma.usuario.update).mockResolvedValue(mockUserAfter as any);
+            vi.mocked(prisma.perfilArtista.findUnique).mockResolvedValue(null);
+            vi.mocked((prisma as any).categoriaArtista.findFirst).mockResolvedValueOnce(null);
+
+            await repository.actualizar('user-1', {
+                perfilArtista: {
+                    pagoQR: 'https://example.com/pago_qr.jpg',
+                    redesSociales: [],
+                    metodosDonacion: [],
+                    galeria: []
+                }
+            });
+
+            expect(prisma.usuario.update).toHaveBeenCalled();
         });
 
         it('actualizar: should map redesSociales with fallback to phone number', async () => {
@@ -793,12 +815,12 @@ describe('RepositorioUsuarioPrisma', () => {
             expect(prisma.usuario.findMany).toHaveBeenCalledWith(expect.objectContaining({
                 where: expect.objectContaining({
                     rol: { nombre: 'ARTISTA' },
-                    estadoCuenta: 'ACTIVO',
+                    estado: 'ACTIVO',
                     bloqueados: { none: { bloqueadoId: 'solicitor-1' } },
                     bloqueadoPor: { none: { bloqueadorId: 'solicitor-1' } },
                     AND: expect.arrayContaining([
                         { OR: [{ nombre: { contains: 'test' } }, { nombreUsuario: { contains: 'test' } }] },
-                        { OR: [{ perfilArtista: { pais: { contains: 'PE' } } }, { perfilDiscoteca: { pais: { contains: 'PE' } } }] }
+                        { pais: { contains: 'PE' } }
                     ])
                 })
             }));
@@ -815,7 +837,7 @@ describe('RepositorioUsuarioPrisma', () => {
             expect(prisma.usuario.findMany).toHaveBeenCalledWith({
                 where: {
                     rol: { nombre: 'ARTISTA' },
-                    estadoCuenta: 'ACTIVO',
+                    estado: 'ACTIVO',
                     AND: [{}, {}]
                 },
                 include: expect.any(Object)
@@ -847,7 +869,9 @@ describe('RepositorioUsuarioPrisma', () => {
                     OR: [
                         { nombre: { contains: 'search' } },
                         { correo: { contains: 'search' } },
-                        { nombreUsuario: { contains: 'search' } }
+                        { nombreUsuario: { contains: 'search' } },
+                        { rol: { nombre: { contains: 'search' } } },
+                        { perfilDiscoteca: { nombreLocal: { contains: 'search' } } }
                     ]
                 }
             }));

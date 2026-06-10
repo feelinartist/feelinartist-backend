@@ -40,20 +40,7 @@ export class RedisService {
             return;
         }
 
-        try 
-            // {
-            // this.client = new Redis(redisUrl, {
-            //     maxRetriesPerRequest: 1,
-            //     enableOfflineQueue: false, // Don't buffer commands if Redis is offline
-            //     retryStrategy: (times) => {
-            //         if (times > 3) {
-            //             console.warn('⚠️ Could not connect to Redis. Retrying in 5s...');
-            //             return 5000;
-            //         }
-            //         return Math.min(times * 50, 2000);
-            //     }
-            // });
-            {
+        try {
             this.client = new Redis(redisUrl, {
                 // HABILITAR TLS PARA UPSTASH
                 tls: {}, 

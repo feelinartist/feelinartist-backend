@@ -10,8 +10,8 @@ export class CrearUsuarioCasoUso {
             const updates: Record<string, unknown> = {};
 
             // Reactivate account if disabled or pending deletion
-            if (usuarioExistente.estadoCuenta === 'DESHABILITADO' || usuarioExistente.estadoCuenta === 'ELIMINACION_PENDIENTE') {
-                updates.estadoCuenta = 'ACTIVO';
+            if (usuarioExistente.estado === 'DESHABILITADO' || usuarioExistente.estado === 'ELIMINACION_PENDIENTE') {
+                updates.estado = 'ACTIVO';
                 updates.fechaEliminacionProgramada = null;
             }
 

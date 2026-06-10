@@ -4,16 +4,56 @@ import { z } from 'zod';
 
 // Update role schema — only self-assignable roles allowed
 export const updateRoleSchema = z.looseObject({
-    correo: z.email({ error: 'Email inválido' }),
     rol: z.enum(['ARTISTA', 'PUBLICO', 'DISCOTECA'], {
         error: 'Rol inválido. Debe ser ARTISTA, PUBLICO o DISCOTECA'
     }),
+    nombreUsuario: z.string({ error: (issue) => issue.input === undefined ? 'El nombre de usuario (@usuario) es requerido' : 'El nombre de usuario (@usuario) debe ser texto' })
+        .min(1, 'El nombre de usuario (@usuario) es requerido'),
+    nombre: z.string().optional(),
+    nombreArtistico: z.string().optional(),
+    categoria: z.string().optional(),
+    ciudad: z.string().optional(),
+    pais: z.string().optional(),
+    ciudadId: z.string().optional(),
+    paisId: z.string().optional(),
+    zonaHoraria: z.string().optional(),
+    imagen: z.string().optional(),
+    codigoTelefono: z.string().optional(),
+    numeroTelefono: z.string().optional(),
+    generosFavoritos: z.array(z.string()).optional(),
     datosPerfilArtista: z.record(z.string(), z.unknown()).optional(),
     datosPerfilPublico: z.record(z.string(), z.unknown()).optional(),
-    datosDiscoteca: z.record(z.string(), z.unknown()).optional(),
-    nombreUsuario: z.string().optional(),
-    nombre: z.string().optional()
+    datosDiscoteca: z.record(z.string(), z.unknown()).optional()
+}).superRefine((data, ctx) => {
+    if (data.rol === 'ARTISTA') {
+        if (!data.categoria || data.categoria.trim() === '') {
+            ctx.addIssue({
+                code: 'custom',
+                path: ['categoria'],
+                message: 'La categoría es requerida'
+            });
+        }
+    }
+    if (data.rol === 'DISCOTECA') {
+        const hasCiudad = (data.ciudad && data.ciudad.trim() !== '') || (data.ciudadId && data.ciudadId.trim() !== '');
+        const hasPais = (data.pais && data.pais.trim() !== '') || (data.paisId && data.paisId.trim() !== '');
+        if (!hasCiudad) {
+            ctx.addIssue({
+                code: 'custom',
+                path: ['ciudad'],
+                message: 'La ciudad es requerida'
+            });
+        }
+        if (!hasPais) {
+            ctx.addIssue({
+                code: 'custom',
+                path: ['pais'],
+                message: 'El país es requerido'
+            });
+        }
+    }
 });
+
 
 // Update profile schema
 export const updateProfileSchema = z.object({

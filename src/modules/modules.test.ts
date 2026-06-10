@@ -6,12 +6,16 @@ import { Request, Response } from 'express';
 const mockControladorAdminConfig = {
     listarRedesSociales: vi.fn(),
     listarMetodosDonacion: vi.fn(),
+    listarCategoriasArtista: vi.fn(),
     crearRedSocial: vi.fn(),
     actualizarRedSocial: vi.fn(),
     eliminarRedSocial: vi.fn(),
     crearMetodoDonacion: vi.fn(),
     actualizarMetodoDonacion: vi.fn(),
     eliminarMetodoDonacion: vi.fn(),
+    crearCategoriaArtista: vi.fn(),
+    actualizarCategoriaArtista: vi.fn(),
+    eliminarCategoriaArtista: vi.fn(),
     listarRoles: vi.fn()
 };
 vi.mock('../presentation/controllers/controlador-admin-config', () => ({
@@ -23,7 +27,8 @@ vi.mock('../presentation/controllers/controlador-admin-config', () => ({
 }));
 
 const mockControladorAutenticacion = {
-    iniciarSesion: vi.fn()
+    iniciarSesion: vi.fn(),
+    registrar: vi.fn()
 };
 vi.mock('../presentation/controllers/controlador-autenticacion', () => ({
     ControladorAutenticacion: class {
@@ -234,6 +239,18 @@ describe('NestJS Modules Controllers delegation tests', () => {
         controller.eliminarMetodoDonacion('id', req as Request, res as Response);
         expect(mockControladorAdminConfig.eliminarMetodoDonacion).toHaveBeenCalledWith(req, res);
 
+        controller.listarCategoriasArtista(req as Request, res as Response);
+        expect(mockControladorAdminConfig.listarCategoriasArtista).toHaveBeenCalledWith(req, res);
+
+        controller.crearCategoriaArtista(req as Request, res as Response);
+        expect(mockControladorAdminConfig.crearCategoriaArtista).toHaveBeenCalledWith(req, res);
+
+        controller.actualizarCategoriaArtista('id', req as Request, res as Response);
+        expect(mockControladorAdminConfig.actualizarCategoriaArtista).toHaveBeenCalledWith(req, res);
+
+        controller.eliminarCategoriaArtista('id', req as Request, res as Response);
+        expect(mockControladorAdminConfig.eliminarCategoriaArtista).toHaveBeenCalledWith(req, res);
+
         controller.listarRoles(req as Request, res as Response);
         expect(mockControladorAdminConfig.listarRoles).toHaveBeenCalledWith(req, res);
     });
@@ -242,6 +259,9 @@ describe('NestJS Modules Controllers delegation tests', () => {
         const controller = new AuthController();
         controller.iniciarSesion(req as Request, res as Response);
         expect(mockControladorAutenticacion.iniciarSesion).toHaveBeenCalledWith(req, res);
+
+        controller.registrar(req as Request, res as Response);
+        expect(mockControladorAutenticacion.registrar).toHaveBeenCalledWith(req, res);
     });
 
     it('EventsController', () => {

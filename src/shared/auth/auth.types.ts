@@ -11,4 +11,6 @@ export interface AuthenticatedRequest {
     headers: {
         authorization?: string;
     };
+    path?: string;
+    url?: string;
 }

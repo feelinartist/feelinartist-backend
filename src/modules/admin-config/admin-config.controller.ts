@@ -19,6 +19,11 @@ export class AdminConfigController {
         return this.controlador.listarMetodosDonacion(req, res);
     }
 
+    @Get('config/categorias-artista')
+    listarCategoriasArtista(@Req() req: Request, @Res() res: Response) {
+        return this.controlador.listarCategoriasArtista(req, res);
+    }
+
     @Post('admin/config/redes-sociales')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('SUPER_ADMIN', 'ADMIN')
@@ -59,6 +64,27 @@ export class AdminConfigController {
     @Roles('SUPER_ADMIN', 'ADMIN')
     eliminarMetodoDonacion(@Param('id') _id: string, @Req() req: Request, @Res() res: Response) {
         return this.controlador.eliminarMetodoDonacion(req, res);
+    }
+
+    @Post('admin/config/categorias-artista')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('SUPER_ADMIN', 'ADMIN')
+    crearCategoriaArtista(@Req() req: Request, @Res() res: Response) {
+        return this.controlador.crearCategoriaArtista(req, res);
+    }
+
+    @Patch('admin/config/categorias-artista/:id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('SUPER_ADMIN', 'ADMIN')
+    actualizarCategoriaArtista(@Param('id') _id: string, @Req() req: Request, @Res() res: Response) {
+        return this.controlador.actualizarCategoriaArtista(req, res);
+    }
+
+    @Delete('admin/config/categorias-artista/:id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('SUPER_ADMIN', 'ADMIN')
+    eliminarCategoriaArtista(@Param('id') _id: string, @Req() req: Request, @Res() res: Response) {
+        return this.controlador.eliminarCategoriaArtista(req, res);
     }
 
     @Get('admin/config/roles')

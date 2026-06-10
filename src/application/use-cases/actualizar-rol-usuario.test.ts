@@ -53,7 +53,7 @@ describe('ActualizarRolUsuarioCasoUso', () => {
     it('debe lanzar error si el usuario no es encontrado', async () => {
         mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(null);
 
-        await expect(casoUso.ejecutar('test@test.com', 'ARTISTA'))
+        await expect(casoUso.ejecutar({ correo: 'test@test.com', nombreRol: 'ARTISTA' }))
             .rejects.toThrow('Usuario no encontrado');
     });
 
@@ -67,7 +67,7 @@ describe('ActualizarRolUsuarioCasoUso', () => {
         mockRepositorioUsuario.actualizar.mockResolvedValue({ ...usuarioMock, rol: { nombre: 'ARTISTA' } });
 
         const datosPerfilArtista = { bio: 'Soy un artista' };
-        const result = await casoUso.ejecutar('test@test.com', 'ARTISTA', datosPerfilArtista);
+        const result = await casoUso.ejecutar({ correo: 'test@test.com', nombreRol: 'ARTISTA', datosPerfilArtista });
 
         expect(configService.get).toHaveBeenCalledWith('FRONTEND_URL', 'https://localhost:3000');
         expect(mockGenerateQrCode).toHaveBeenCalledWith('https://localhost:3000/artist/artista_username/music');
@@ -102,7 +102,7 @@ describe('ActualizarRolUsuarioCasoUso', () => {
 
         const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        const result = await casoUso.ejecutar('test@test.com', 'ARTISTA');
+        const result = await casoUso.ejecutar({ correo: 'test@test.com', nombreRol: 'ARTISTA' });
 
         expect(consoleSpy).toHaveBeenCalled();
         expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('user-123', {
@@ -125,7 +125,7 @@ describe('ActualizarRolUsuarioCasoUso', () => {
         mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(usuarioMock);
         mockRepositorioUsuario.actualizar.mockResolvedValue(usuarioMock);
 
-        await casoUso.ejecutar('admin@test.com', 'ARTISTA');
+        await casoUso.ejecutar({ correo: 'admin@test.com', nombreRol: 'ARTISTA' });
 
         expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('admin-123', {
             perfilArtista: expect.any(Object),
@@ -153,7 +153,7 @@ describe('ActualizarRolUsuarioCasoUso', () => {
             zonaHoraria: 'America/Bogota',
         };
 
-        await casoUso.ejecutar('disco@test.com', 'DISCOTECA', undefined, undefined, datosDiscoteca);
+        await casoUso.ejecutar({ correo: 'disco@test.com', nombreRol: 'DISCOTECA', datosDiscoteca });
 
         expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('disco-123', {
             perfilArtista: undefined,
@@ -161,13 +161,15 @@ describe('ActualizarRolUsuarioCasoUso', () => {
             nombreUsuario: undefined,
             nombre: undefined,
             rol: 'DISCOTECA',
+            ciudad: 'Bogota',
+            pais: 'Colombia',
+            codigoTelefono: '+57',
+            numeroTelefono: '3001234567',
+            zonaHoraria: 'America/Bogota',
+            imagen: undefined,
+            generosFavoritos: undefined,
             perfilDiscoteca: {
-                ciudad: 'Bogota',
-                pais: 'Colombia',
                 fechaFundacion: new Date('2020-01-01T00:00:00.000Z'),
-                codigoTelefono: '+57',
-                numeroTelefono: '3001234567',
-                zonaHoraria: 'America/Bogota',
             },
         });
     });
@@ -189,7 +191,7 @@ describe('ActualizarRolUsuarioCasoUso', () => {
             zonaHoraria: 'America/Bogota',
         };
 
-        await casoUso.ejecutar('disco@test.com', 'DISCOTECA', undefined, undefined, datosDiscoteca);
+        await casoUso.ejecutar({ correo: 'disco@test.com', nombreRol: 'DISCOTECA', datosDiscoteca });
 
         expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('disco-123', {
             perfilArtista: undefined,
@@ -197,13 +199,15 @@ describe('ActualizarRolUsuarioCasoUso', () => {
             nombreUsuario: undefined,
             nombre: undefined,
             rol: 'DISCOTECA',
+            ciudad: 'Bogota',
+            pais: 'Colombia',
+            codigoTelefono: '+57',
+            numeroTelefono: '3001234567',
+            zonaHoraria: 'America/Bogota',
+            imagen: undefined,
+            generosFavoritos: undefined,
             perfilDiscoteca: {
-                ciudad: 'Bogota',
-                pais: 'Colombia',
                 fechaFundacion: undefined,
-                codigoTelefono: '+57',
-                numeroTelefono: '3001234567',
-                zonaHoraria: 'America/Bogota',
             },
         });
     });
@@ -217,7 +221,7 @@ describe('ActualizarRolUsuarioCasoUso', () => {
         mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(usuarioMock);
         mockRepositorioUsuario.actualizar.mockResolvedValue(usuarioMock);
 
-        await casoUso.ejecutar('test@test.com', 'ARTISTA');
+        await casoUso.ejecutar({ correo: 'test@test.com', nombreRol: 'ARTISTA' });
 
         expect(mockGenerateQrCode).not.toHaveBeenCalled();
         expect(mockUploadBase64Image).not.toHaveBeenCalled();
@@ -232,7 +236,7 @@ describe('ActualizarRolUsuarioCasoUso', () => {
         mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(usuarioMock);
         mockRepositorioUsuario.buscarPorNombreUsuario.mockResolvedValue({ id: 'otro-usuario-id', nombreUsuario: 'nuevo_username' });
 
-        await expect(casoUso.ejecutar('test@test.com', 'ARTISTA', undefined, undefined, undefined, 'nuevo_username'))
+        await expect(casoUso.ejecutar({ correo: 'test@test.com', nombreRol: 'ARTISTA', nombreUsuario: 'nuevo_username' }))
             .rejects.toThrow('El nombre de usuario ya está en uso.');
     });
 
@@ -246,7 +250,7 @@ describe('ActualizarRolUsuarioCasoUso', () => {
         mockRepositorioUsuario.buscarPorNombreUsuario.mockResolvedValue(usuarioMock);
         mockRepositorioUsuario.actualizar.mockResolvedValue(usuarioMock);
 
-        const result = await casoUso.ejecutar('test@test.com', 'ARTISTA', undefined, undefined, undefined, 'mismo_username');
+        const result = await casoUso.ejecutar({ correo: 'test@test.com', nombreRol: 'ARTISTA', nombreUsuario: 'mismo_username' });
         expect(result).toBeDefined();
     });
 
@@ -260,14 +264,13 @@ describe('ActualizarRolUsuarioCasoUso', () => {
         mockRepositorioUsuario.buscarPorNombreUsuario.mockResolvedValue(null);
         mockRepositorioUsuario.actualizar.mockResolvedValue({ ...usuarioMock, nombreUsuario: 'nuevo_artista', rol: { nombre: 'ARTISTA' } });
 
-        await casoUso.ejecutar('test@test.com', 'ARTISTA', undefined, undefined, undefined, 'nuevo_artista');
+        await casoUso.ejecutar({ correo: 'test@test.com', nombreRol: 'ARTISTA', nombreUsuario: 'nuevo_artista' });
 
         expect(mockGenerateQrCode).toHaveBeenCalledWith('https://localhost:3000/artist/nuevo_artista/music');
     });
 
     it('debe validar updateRoleSchema correctamente con un rol inválido', () => {
         const result = updateRoleSchema.safeParse({
-            correo: 'test@correo.com',
             rol: 'INVALID_ROLE'
         });
         expect(result.success).toBe(false);
@@ -275,6 +278,65 @@ describe('ActualizarRolUsuarioCasoUso', () => {
             const error = result.error.format();
             expect(error.rol?._errors[0]).toBe('Rol inválido. Debe ser ARTISTA, PUBLICO o DISCOTECA');
         }
+    });
+
+    it('debe actualizar el rol a PUBLICO con datosPerfilPublico definidos', async () => {
+        const usuarioMock = {
+            id: 'user-123',
+            nombreUsuario: 'publico_username',
+            rol: { nombre: 'ARTISTA' },
+        };
+        mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(usuarioMock);
+        mockRepositorioUsuario.actualizar.mockResolvedValue({ ...usuarioMock, rol: { nombre: 'PUBLICO' } });
+
+        const datosPerfilPublico = {
+            ciudad: 'Madrid',
+            pais: 'España',
+            codigoTelefono: '+34',
+            numeroTelefono: '666555444',
+            zonaHoraria: 'Europe/Madrid',
+            preferencia: 'conciertos',
+        };
+
+        const result = await casoUso.ejecutar({
+            correo: 'test@test.com',
+            nombreRol: 'PUBLICO',
+            datosPerfilPublico,
+        });
+
+        expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('user-123', expect.objectContaining({
+            perfilPublico: {
+                preferencia: 'conciertos',
+            },
+            rol: 'PUBLICO',
+            ciudad: 'Madrid',
+            pais: 'España',
+            codigoTelefono: '+34',
+            numeroTelefono: '666555444',
+            zonaHoraria: 'Europe/Madrid',
+        }));
+        expect(result).toBeDefined();
+    });
+
+    it('debe actualizar el rol a PUBLICO sin datosPerfilPublico definidos', async () => {
+        const usuarioMock = {
+            id: 'user-123',
+            nombreUsuario: 'publico_username',
+            rol: { nombre: 'ARTISTA' },
+        };
+        mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(usuarioMock);
+        mockRepositorioUsuario.actualizar.mockResolvedValue({ ...usuarioMock, rol: { nombre: 'PUBLICO' } });
+
+        const result = await casoUso.ejecutar({
+            correo: 'test@test.com',
+            nombreRol: 'PUBLICO',
+        });
+
+        expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('user-123', expect.objectContaining({
+            perfilPublico: {},
+            rol: 'PUBLICO',
+        }));
+        expect(result).toBeDefined();
     });
 });
 

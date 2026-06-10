@@ -23,14 +23,14 @@ describe('CrearUsuarioCasoUso', () => {
             const usuarioMock = {
                 id: '123',
                 correo: 'test@test.com',
-                estadoCuenta: 'DESHABILITADO',
+                estado: 'DESHABILITADO',
                 nombre: 'Juan',
                 imagen: 'google.com/pic',
             };
             mockRepositorioUsuario.buscarPorCorreo.mockResolvedValue(usuarioMock);
             mockRepositorioUsuario.actualizar.mockResolvedValue({
                 ...usuarioMock,
-                estadoCuenta: 'ACTIVO',
+                estado: 'ACTIVO',
                 fechaEliminacionProgramada: null,
             });
 
@@ -41,17 +41,17 @@ describe('CrearUsuarioCasoUso', () => {
             } as any);
 
             expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', {
-                estadoCuenta: 'ACTIVO',
+                estado: 'ACTIVO',
                 fechaEliminacionProgramada: null,
             });
-            expect(result.estadoCuenta).toBe('ACTIVO');
+            expect(result.estado).toBe('ACTIVO');
         });
 
         it('debe reactivar la cuenta si el estado es ELIMINACION_PENDIENTE', async () => {
             const usuarioMock = {
                 id: '123',
                 correo: 'test@test.com',
-                estadoCuenta: 'ELIMINACION_PENDIENTE',
+                estado: 'ELIMINACION_PENDIENTE',
                 nombre: 'Juan',
                 imagen: 'google.com/pic',
             };
@@ -65,7 +65,7 @@ describe('CrearUsuarioCasoUso', () => {
             } as any);
 
             expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', {
-                estadoCuenta: 'ACTIVO',
+                estado: 'ACTIVO',
                 fechaEliminacionProgramada: null,
             });
         });
@@ -74,7 +74,7 @@ describe('CrearUsuarioCasoUso', () => {
             const usuarioMock = {
                 id: '123',
                 correo: 'test@test.com',
-                estadoCuenta: 'ACTIVO',
+                estado: 'ACTIVO',
                 nombre: null,
                 imagen: 'google.com/pic',
             };
@@ -96,7 +96,7 @@ describe('CrearUsuarioCasoUso', () => {
             const usuarioMock = {
                 id: '123',
                 correo: 'test@test.com',
-                estadoCuenta: 'ACTIVO',
+                estado: 'ACTIVO',
                 nombre: 'Juan',
                 imagen: 'old-pic.jpg',
             };
@@ -118,7 +118,7 @@ describe('CrearUsuarioCasoUso', () => {
             const usuarioMock = {
                 id: '123',
                 correo: 'test@test.com',
-                estadoCuenta: 'ACTIVO',
+                estado: 'ACTIVO',
                 nombre: 'Juan',
                 imagen: 'pic.jpg',
             };

@@ -99,6 +99,53 @@ export class ControladorAdminConfig {
         }
     }
 
+    // CATEGORIAS ARTISTA
+    async listarCategoriasArtista(req: Request, res: Response) {
+        try {
+            const categorias = await repositorioConfig.listarCategoriasArtista();
+            return res.status(200).json(categorias);
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Error al listar categorías de artista' });
+        }
+    }
+
+    async crearCategoriaArtista(req: Request, res: Response) {
+        try {
+            const { nombre } = req.body;
+            if (!nombre) return res.status(400).json({ message: 'Nombre requerido' });
+
+            const categoria = await repositorioConfig.crearCategoriaArtista({ nombre });
+            return res.status(201).json(categoria);
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Error al crear categoría de artista' });
+        }
+    }
+
+    async actualizarCategoriaArtista(req: Request, res: Response) {
+        try {
+            const id = req.params.id as string;
+            const data = req.body;
+            const categoria = await repositorioConfig.actualizarCategoriaArtista(id, data);
+            return res.status(200).json(categoria);
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Error al actualizar categoría de artista' });
+        }
+    }
+
+    async eliminarCategoriaArtista(req: Request, res: Response) {
+        try {
+            const id = req.params.id as string;
+            await repositorioConfig.eliminarCategoriaArtista(id);
+            return res.status(200).json({ message: 'Categoría de artista eliminada' });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Error al eliminar categoría de artista' });
+        }
+    }
+
     // ROLES
     async listarRoles(req: Request, res: Response) {
         try {

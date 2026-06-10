@@ -18,13 +18,20 @@ model Usuario {
   perfilArtista              PerfilArtista?
   perfilPublico              PerfilPublico?
   perfilDiscoteca            PerfilDiscoteca?
+  // Datos de contacto y ubicación (centralizados desde perfiles)
+  codigoTelefono             String?
+  numeroTelefono             String?
+  ciudad                     String?
+  pais                       String?
+  zonaHoraria                String?          // Obligatorio en nuevo registro, null hasta que haga login por primera vez
+  generosFavoritos           String[]         // Géneros musicales favoritos del usuario
   creadoEn                   DateTime         @default(now())
   actualizadoEn              DateTime         @updatedAt
   creadoPor                  String?
   actualizadoPor             String?
   ultimoCambioNombreUsuario  DateTime?
   ultimoCambioNombre         DateTime?
-  estadoCuenta               EstadoCuenta     @default(ACTIVO)
+  estado                     EstadoCuenta     @default(ACTIVO)
   fechaEliminacionProgramada DateTime?
   perfilCompletadoReconocido Boolean          @default(false)
   bloqueados                 Bloqueo[]        @relation("Bloqueador")
@@ -55,11 +62,6 @@ model Bloqueo {
 model PerfilPublico {
   id             String   @id @default(uuid())
   usuarioId      String   @unique
-  codigoTelefono String?
-  numeroTelefono String?
-  ciudad         String?
-  pais           String?
-  zonaHoraria    String
   usuario        Usuario  @relation(fields: [usuarioId], references: [id])
   creadoEn       DateTime @default(now())
   actualizadoEn  DateTime @updatedAt
@@ -80,22 +82,17 @@ model Rol {
 model PerfilArtista {
   id        String  @id @default(uuid())
   usuarioId String  @unique
-  biografia String?
-
-  codigoTelefono        String?
-  numeroTelefono        String?
+  biografia             String?
   fechaInicio           DateTime?             @db.Date
   tarifaPorHora         Decimal?
   moneda                String?
   lugaresConocidos      Json?
   redesSociales         ArtistaRedSocial[]
   metodosDonacion       ArtistaDonacion[]
-  categoria             CategoriaArtista
-  ciudad                String?
-  pais                  String?
-  zonaHoraria           String
-  musicQR               String? // Antes codigoQR - QR para pedir música
-  pagoQR                String? // Antes imagenQR - QR de pago (Yape/Plin)
+  categoriaId           String
+  categoria             CategoriaArtista      @relation(fields: [categoriaId], references: [id])
+  musicQR               String?               // URL endpoint para peticiones de canciones
+  pagoQR                String?               // QR de pago (Yape/Plin)
   nombreQR              String?
   urlPago               String?
   urlYoutubeFavorito    String?
@@ -106,20 +103,11 @@ model PerfilArtista {
   pedidosCanciones      PedidoCancion[]
   estadisticasCanciones EstadisticasCancion[]
   seguidores            Seguidor[]
-  reservas              Reserva[]
-  contrataciones        Contratacion[]
   usuario               Usuario               @relation(fields: [usuarioId], references: [id])
   creadoEn              DateTime              @default(now())
   actualizadoEn         DateTime              @updatedAt
   creadoPor             String?
   actualizadoPor        String?
-}
-
-enum CategoriaArtista {
-  DJ
-  BANDA
-  SOLISTA
-  ORQUESTA
 }
 
 model GaleriaArtista {
@@ -144,7 +132,6 @@ model Evento {
   latitud          Float?
   longitud         Float?
   pedidosCanciones PedidoCancion[]
-  reservas         Reserva[]
   perfilArtista    PerfilArtista   @relation(fields: [perfilArtistaId], references: [id])
   creadoEn         DateTime        @default(now())
   actualizadoEn    DateTime        @updatedAt
@@ -214,36 +201,12 @@ model Seguidor {
   actualizadoPor    String?
 }
 
-model Reserva {
-  id              String        @id @default(uuid())
-  usuarioId       String
-  perfilArtistaId String
-  eventoId        String?
-  estado          EstadoReserva @default(PENDIENTE)
-  perfilArtista   PerfilArtista @relation(fields: [perfilArtistaId], references: [id])
-  evento          Evento?       @relation(fields: [eventoId], references: [id])
-  creadoEn        DateTime      @default(now())
-  actualizadoEn   DateTime      @updatedAt
-  creadoPor       String?
-  actualizadoPor  String?
-}
-
-enum EstadoReserva {
-  PENDIENTE
-  CONFIRMADA
-  RECHAZADA
-}
-
 model PerfilDiscoteca {
   id             String         @id @default(uuid())
   usuarioId      String         @unique
-  ciudad         String?
-  pais           String?
-  codigoTelefono String?
-  numeroTelefono String?
-  zonaHoraria    String?
+  // codigoTelefono, numeroTelefono, ciudad, pais, zonaHoraria → centralizados en Usuario
+  nombreLocal    String?        // Nombre del local / establecimiento
   fechaFundacion DateTime?      @db.Date
-  contrataciones Contratacion[]
   seguidores     Seguidor[]
   usuario        Usuario        @relation(fields: [usuarioId], references: [id])
   creadoEn       DateTime       @default(now())
@@ -252,66 +215,12 @@ model PerfilDiscoteca {
   actualizadoPor String?
 }
 
-model Contratacion {
-  id                String @id @default(uuid())
-  perfilDiscotecaId String
-  perfilArtistaId   String
-
-  perfilDiscoteca PerfilDiscoteca @relation(fields: [perfilDiscotecaId], references: [id])
-  perfilArtista   PerfilArtista   @relation(fields: [perfilArtistaId], references: [id])
-
-  fechaEvento DateTime
-  precio      Decimal
-  estado      EstadoContratacion @default(PENDIENTE)
-
-  creadoEn       DateTime @default(now())
-  actualizadoEn  DateTime @updatedAt
-  creadoPor      String?
-  actualizadoPor String?
-}
-
-enum EstadoContratacion {
-  PENDIENTE
-  CONFIRMADA
-  RECHAZADA
-}
-
-model Anuncio {
-  id             String   @id @default(uuid())
-  titulo         String
-  contenido      String
-  regionObjetivo String?
-  fechaInicio    DateTime
-  fechaFin       DateTime
-  creadoEn       DateTime @default(now())
-  actualizadoEn  DateTime @updatedAt
-  creadoPor      String?
-  actualizadoPor String?
-}
-
-model Log {
-  id             String   @id @default(uuid())
-  nivel          NivelLog
-  mensaje        String
-  meta           Json?
-  creadoEn       DateTime @default(now())
-  actualizadoEn  DateTime @updatedAt
-  creadoPor      String?
-  actualizadoPor String?
-}
-
-enum NivelLog {
-  INFO
-  WARN
-  ERROR
-}
-
 model RedSocial {
   id            String             @id @default(uuid())
   nombre        String             @unique
   urlBase       String
   icono         String?
-  activo        Boolean            @default(true)
+  estado        String             @default("ACTIVO")
   artistas      ArtistaRedSocial[]
   creadoEn      DateTime           @default(now())
   actualizadoEn DateTime           @updatedAt
@@ -336,7 +245,7 @@ model MetodoDonacion {
   id            String            @id @default(uuid())
   nombre        String            @unique
   icono         String?
-  activo        Boolean           @default(true)
+  estado        String            @default("ACTIVO")
   artistas      ArtistaDonacion[]
   creadoEn      DateTime          @default(now())
   actualizadoEn DateTime          @updatedAt
@@ -364,6 +273,17 @@ model ConfiguracionSistema {
   descripcion    String?
   creadoEn       DateTime @default(now())
   actualizadoEn  DateTime @updatedAt
+  creadoPor      String?
+  actualizadoPor String?
+}
+
+model CategoriaArtista {
+  id             String          @id @default(uuid())
+  nombre         String          @unique
+  estado         String          @default("ACTIVO")
+  artistas       PerfilArtista[]
+  creadoEn       DateTime        @default(now())
+  actualizadoEn  DateTime        @updatedAt
   creadoPor      String?
   actualizadoPor String?
 }

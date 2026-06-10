@@ -18,7 +18,7 @@ import { SocketService } from '../../infrastructure/services/socket-service';
 })
 export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
-    server!: Server;
+    server!: any;
 
     afterInit(server: Server) {
         SocketService.getInstance().init(server);

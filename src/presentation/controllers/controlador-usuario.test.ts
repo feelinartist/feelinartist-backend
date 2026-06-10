@@ -437,15 +437,25 @@ describe('ControladorUsuario', () => {
     });
 
     describe('actualizarRol', () => {
-        it('should return 400 if email or role is missing', async () => {
+        it('should return 401 if user is not authenticated', async () => {
+            req.user = undefined;
+            req.body = { rol: 'ARTISTA' };
+            await controller.actualizarRol(req as Request, res as Response);
+            expect(statusMock).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Usuario no autenticado o token inválido' });
+        });
+
+        it('should return 400 if role is missing', async () => {
+            req.user = { id: 'user-1', email: 'test@correo.com' };
             req.body = {};
             await controller.actualizarRol(req as Request, res as Response);
             expect(statusMock).toHaveBeenCalledWith(400);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'El rol es requerido' });
         });
 
         it('should update role to ARTISTA, parse data and return token', async () => {
+            req.user = { id: 'user-1', email: 'test@correo.com' };
             req.body = {
-                correo: 'test@correo.com',
                 rol: 'ARTISTA',
                 nombreUsuario: 'artistuser',
                 nombreArtistico: 'Artist Name',
@@ -458,22 +468,29 @@ describe('ControladorUsuario', () => {
 
             await controller.actualizarRol(req as Request, res as Response);
 
-            expect((globalThis as any).mockActualizarRolUsuario).toHaveBeenCalledWith(
-                'test@correo.com',
-                'ARTISTA',
-                { bio: 'Bio info', ciudad: 'city-1', pais: 'PE', nombreUsuario: 'artistuser' },
-                undefined,
-                undefined,
-                'artistuser',
-                'Artist Name'
-            );
+            expect((globalThis as any).mockActualizarRolUsuario).toHaveBeenCalledWith({
+                correo: 'test@correo.com',
+                nombreRol: 'ARTISTA',
+                datosPerfilArtista: { categoria: undefined, bio: 'Bio info' },
+                datosPerfilPublico: undefined,
+                datosDiscoteca: undefined,
+                nombreUsuario: 'artistuser',
+                nombre: 'Artist Name',
+                imagen: undefined,
+                zonaHoraria: undefined,
+                codigoTelefono: undefined,
+                numeroTelefono: undefined,
+                ciudad: 'city-1',
+                pais: 'PE',
+                generosFavoritos: undefined
+            });
             expect(statusMock).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({ ...mockUser, token: 'mock-jwt-token' });
         });
 
         it('should update role to PUBLICO', async () => {
+            req.user = { id: 'user-1', email: 'test@correo.com' };
             req.body = {
-                correo: 'test@correo.com',
                 rol: 'PUBLICO',
                 nombreUsuario: 'pubuser',
                 nombre: 'Public User',
@@ -483,20 +500,27 @@ describe('ControladorUsuario', () => {
 
             await controller.actualizarRol(req as Request, res as Response);
 
-            expect((globalThis as any).mockActualizarRolUsuario).toHaveBeenCalledWith(
-                'test@correo.com',
-                'PUBLICO',
-                undefined,
-                { ciudad: 'city-1', nombreUsuario: 'pubuser' },
-                undefined,
-                'pubuser',
-                'Public User'
-            );
+            expect((globalThis as any).mockActualizarRolUsuario).toHaveBeenCalledWith({
+                correo: 'test@correo.com',
+                nombreRol: 'PUBLICO',
+                datosPerfilArtista: undefined,
+                datosPerfilPublico: {},
+                datosDiscoteca: undefined,
+                nombreUsuario: 'pubuser',
+                nombre: 'Public User',
+                imagen: undefined,
+                zonaHoraria: undefined,
+                codigoTelefono: undefined,
+                numeroTelefono: undefined,
+                ciudad: 'city-1',
+                pais: undefined,
+                generosFavoritos: undefined
+            });
         });
 
         it('should update role to DISCOTECA', async () => {
+            req.user = { id: 'user-1', email: 'test@correo.com' };
             req.body = {
-                correo: 'test@correo.com',
                 rol: 'DISCOTECA',
                 nombreUsuario: 'discouser',
                 nombre: 'Disco Club',
@@ -511,27 +535,27 @@ describe('ControladorUsuario', () => {
 
             await controller.actualizarRol(req as Request, res as Response);
 
-            expect((globalThis as any).mockActualizarRolUsuario).toHaveBeenCalledWith(
-                'test@correo.com',
-                'DISCOTECA',
-                undefined,
-                undefined,
-                {
-                    ciudad: 'city-1',
-                    pais: 'PE',
-                    fechaFundacion: '2020-01-01',
-                    codigoTelefono: '+51',
-                    numeroTelefono: '999999999',
-                    zonaHoraria: 'America/Lima'
-                },
-                'discouser',
-                'Disco Club'
-            );
+            expect((globalThis as any).mockActualizarRolUsuario).toHaveBeenCalledWith({
+                correo: 'test@correo.com',
+                nombreRol: 'DISCOTECA',
+                datosPerfilArtista: undefined,
+                datosPerfilPublico: undefined,
+                datosDiscoteca: { fechaFundacion: '2020-01-01' },
+                nombreUsuario: 'discouser',
+                nombre: 'Disco Club',
+                imagen: undefined,
+                zonaHoraria: 'America/Lima',
+                codigoTelefono: '+51',
+                numeroTelefono: '999999999',
+                ciudad: 'city-1',
+                pais: 'PE',
+                generosFavoritos: undefined
+            });
         });
 
         it('should update role to ADMIN (fall-through role)', async () => {
+            req.user = { id: 'user-1', email: 'test@correo.com' };
             req.body = {
-                correo: 'test@correo.com',
                 rol: 'ADMIN',
                 nombreUsuario: 'adminuser'
             };
@@ -539,20 +563,28 @@ describe('ControladorUsuario', () => {
 
             await controller.actualizarRol(req as Request, res as Response);
 
-            expect((globalThis as any).mockActualizarRolUsuario).toHaveBeenCalledWith(
-                'test@correo.com',
-                'ADMIN',
-                undefined,
-                undefined,
-                undefined,
-                'adminuser',
-                undefined
-            );
+            expect((globalThis as any).mockActualizarRolUsuario).toHaveBeenCalledWith({
+                correo: 'test@correo.com',
+                nombreRol: 'ADMIN',
+                datosPerfilArtista: undefined,
+                datosPerfilPublico: undefined,
+                datosDiscoteca: undefined,
+                nombreUsuario: 'adminuser',
+                nombre: undefined,
+                imagen: undefined,
+                zonaHoraria: undefined,
+                codigoTelefono: undefined,
+                numeroTelefono: undefined,
+                ciudad: undefined,
+                pais: undefined,
+                generosFavoritos: undefined
+            });
             expect(statusMock).toHaveBeenCalledWith(200);
         });
 
         it('should return 500 on error', async () => {
-            req.body = { correo: 'test@correo.com', rol: 'ARTISTA' };
+            req.user = { id: 'user-1', email: 'test@correo.com' };
+            req.body = { rol: 'ARTISTA' };
             (globalThis as any).mockActualizarRolUsuario.mockRejectedValue(new Error('Error'));
             await controller.actualizarRol(req as Request, res as Response);
             expect(statusMock).toHaveBeenCalledWith(500);

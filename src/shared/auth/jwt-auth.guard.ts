@@ -10,6 +10,13 @@ function getSecret(): string {
     return secret;
 }
 
+class CompatibleForbiddenException extends HttpException {
+    constructor(message: string) {
+        super({ message }, HttpStatus.FORBIDDEN);
+        this.message = message;
+    }
+}
+
 class CompatibleUnauthorizedException extends HttpException {
     constructor(message: string) {
         super({ message }, HttpStatus.UNAUTHORIZED);
@@ -26,17 +33,26 @@ export class JwtAuthGuard implements CanActivate {
             const authHeader = request.headers.authorization;
 
             if (!authHeader?.startsWith('Bearer ')) {
-                throw new CompatibleUnauthorizedException('No se proporcionÃ³ token de autenticaciÃ³n');
+                throw new CompatibleUnauthorizedException('No se proporcionó token de autenticación');
             }
 
             const token = authHeader.substring(7);
-            request.user = jwt.verify(token, getSecret()) as AuthenticatedUser;
+            const decoded = jwt.verify(token, getSecret()) as AuthenticatedUser;
+            request.user = decoded;
+
+            const path = request.path || request.url || '';
+            const isSelectRoleRoute = path.includes('/usuarios/rol') || path.includes('/usuarios/verificar-nombre-usuario');
+
+            if (!decoded.rol && !isSelectRoleRoute) {
+                throw new CompatibleForbiddenException('Debe completar el perfil seleccionando un rol');
+            }
+
             return true;
         } catch (error) {
-            if (error instanceof CompatibleUnauthorizedException) {
+            if (error instanceof CompatibleUnauthorizedException || error instanceof CompatibleForbiddenException) {
                 throw error;
             }
-            throw new CompatibleUnauthorizedException('Token invÃ¡lido o expirado');
+            throw new CompatibleUnauthorizedException('Token inválido o expirado');
         }
     }
 }

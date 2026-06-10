@@ -147,6 +147,47 @@ describe('RedisService', () => {
         expect(service.getIsConnected()).toBe(true);
     });
 
+    describe('ensureConnection', () => {
+        it('should resolve immediately if isConnected is true', async () => {
+            (service as any).isConnected = true;
+            await expect(service.ensureConnection()).resolves.toBeUndefined();
+        });
+
+        it('should resolve when client connects', async () => {
+            (service as any).isConnected = false;
+            
+            const mockOnce = vi.fn().mockImplementation((event: string, cb: Function) => {
+                if (event === 'connect') {
+                    cb();
+                }
+            });
+            (service as any).client = { once: mockOnce };
+
+            await expect(service.ensureConnection()).resolves.toBeUndefined();
+            expect(mockOnce).toHaveBeenCalledWith('connect', expect.any(Function));
+        });
+
+        it('should reject when client has error', async () => {
+            (service as any).isConnected = false;
+            const mockOnce = vi.fn().mockImplementation((event: string, cb: Function) => {
+                if (event === 'error') {
+                    cb(new Error('Connection failed'));
+                }
+            });
+            (service as any).client = { once: mockOnce };
+
+            await expect(service.ensureConnection()).rejects.toThrow('Connection failed');
+            expect(mockOnce).toHaveBeenCalledWith('error', expect.any(Function));
+        });
+
+        it('should reject if client is not initialized', async () => {
+            (service as any).isConnected = false;
+            (service as any).client = null;
+
+            await expect(service.ensureConnection()).rejects.toThrow('Redis client not initialized');
+        });
+    });
+
     it('should return null or default values when client is not initialized or disconnected', async () => {
         (service as any).isConnected = false;
         

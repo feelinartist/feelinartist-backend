@@ -12,7 +12,7 @@ interface ActualizarUsuarioRequest {
     nombreArtistico?: string;
     telefono?: string;
     rol?: string;
-    estadoCuenta?: unknown;
+    estado?: unknown;
 }
 
 export class ActualizarUsuarioCasoUso {
@@ -46,6 +46,7 @@ export class ActualizarUsuarioCasoUso {
         urlYoutubeFavorito?: string;
         urlSoundCloudFavoriorito?: string;
         urlSoundCloudFavorito?: string;
+        generosFavoritos?: string[];
     }): Promise<Usuario> {
         const usuario = await this.repositorioUsuario.buscarPorId(dto.usuarioId);
         if (!usuario) {
@@ -58,8 +59,16 @@ export class ActualizarUsuarioCasoUso {
         const datosActualizacion: ActualizarUsuarioDTO = {
             rol: dto.rol,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            estadoCuenta: dto.estadoCuenta as any
+            estado: dto.estado as any
         };
+
+        if (dto.pais !== undefined) datosActualizacion.pais = dto.pais;
+        if (dto.ciudad !== undefined) datosActualizacion.ciudad = dto.ciudad;
+        if (dto.zonaHoraria !== undefined) datosActualizacion.zonaHoraria = dto.zonaHoraria;
+        if (dto.telefono !== undefined) datosActualizacion.numeroTelefono = dto.telefono;
+        if (dto.codigoTelefono !== undefined) datosActualizacion.codigoTelefono = dto.codigoTelefono;
+        if (dto.generosFavoritos !== undefined) datosActualizacion.generosFavoritos = dto.generosFavoritos;
+        if (dto.imagen !== undefined) datosActualizacion.imagen = dto.imagen;
 
         await this.validarCambioNombreUsuario(dto, usuario, esAdmin, ahora, datosActualizacion);
         this.validarCambioNombre(dto, usuario, esAdmin, ahora, datosActualizacion);
@@ -133,11 +142,6 @@ export class ActualizarUsuarioCasoUso {
     private mapCamposDirectosArtista(dto: any): Record<string, any> {
         const perfil: Record<string, any> = {};
         const camposDirectos = [
-            { dtoKey: 'pais', dbKey: 'pais' },
-            { dtoKey: 'ciudad', dbKey: 'ciudad' },
-            { dtoKey: 'zonaHoraria', dbKey: 'zonaHoraria' },
-            { dtoKey: 'telefono', dbKey: 'numeroTelefono' },
-            { dtoKey: 'codigoTelefono', dbKey: 'codigoTelefono' },
             { dtoKey: 'redesSociales', dbKey: 'redesSociales' },
             { dtoKey: 'metodosDonacion', dbKey: 'metodosDonacion' },
             { dtoKey: 'galeria', dbKey: 'galeria' },
@@ -199,34 +203,16 @@ export class ActualizarUsuarioCasoUso {
     }
 
     private buildPerfilPublico(dto: any, datosActualizacion: ActualizarUsuarioDTO): void {
-        datosActualizacion.perfilPublico = {
-            ...(dto.pais && { pais: dto.pais }),
-            ...(dto.ciudad && { ciudad: dto.ciudad }),
-            ...(dto.zonaHoraria && { zonaHoraria: dto.zonaHoraria }),
-            ...(dto.telefono && { numeroTelefono: dto.telefono }),
-            ...(dto.codigoTelefono && { codigoTelefono: dto.codigoTelefono }),
-        };
+        datosActualizacion.perfilPublico = {};
     }
 
     private buildPerfilDiscoteca(dto: any, datosActualizacion: ActualizarUsuarioDTO): void {
         datosActualizacion.perfilDiscoteca = {
-            ...(dto.pais && { pais: dto.pais }),
-            ...(dto.ciudad && { ciudad: dto.ciudad }),
-            ...(dto.zonaHoraria && { zonaHoraria: dto.zonaHoraria }),
-            ...(dto.telefono && { numeroTelefono: dto.telefono }),
-            ...(dto.codigoTelefono && { codigoTelefono: dto.codigoTelefono }),
             ...(dto.fechaFundacion && { fechaFundacion: new Date(dto.fechaFundacion) }),
         };
     }
 
     private buildPerfilDefault(dto: any, datosActualizacion: ActualizarUsuarioDTO): void {
-        datosActualizacion.perfilPublico = {
-            pais: dto.pais,
-            ciudad: dto.ciudad,
-            zonaHoraria: dto.zonaHoraria,
-            numeroTelefono: dto.telefono,
-            codigoTelefono: dto.codigoTelefono,
-            imagen: dto.imagen,
-        };
+        datosActualizacion.perfilPublico = {};
     }
 }

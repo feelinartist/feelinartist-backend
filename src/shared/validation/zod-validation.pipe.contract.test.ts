@@ -16,7 +16,7 @@ describe('ZodValidationPipe', () => {
         expect(() => pipe.transform({ nombre: '' })).toThrow(
             expect.objectContaining({
                 response: {
-                    message: 'Error de validaciÃ³n',
+                    message: 'Error de validación',
                     errors: [{ field: 'nombre', message: 'Nombre requerido' }],
                 },
             }),
@@ -29,7 +29,7 @@ describe('ZodValidationPipe', () => {
         expect(() => pipe.transform({}, { type: 'query', metatype: String })).toThrow(
             expect.objectContaining({
                 response: {
-                    message: 'Error de validaciÃ³n en parÃ¡metros',
+                    message: 'Error de validación en parámetros',
                     errors: [{ field: 'q', message: 'Invalid input: expected string, received undefined' }],
                 },
             }),

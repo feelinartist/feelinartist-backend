@@ -1,4 +1,4 @@
-import { RedSocial, MetodoDonacion } from '@prisma/client';
+import { RedSocial, MetodoDonacion, CategoriaArtista } from '@prisma/client';
 import { RepositorioConfig } from '../../domain/repositories/config-repository';
 import { Rol } from '../../domain/entities/user';
 import prisma from '../database/prisma';
@@ -9,7 +9,7 @@ export class RepositorioConfigPrisma implements RepositorioConfig {
     // Redes Sociales
     async listarRedesSociales(): Promise<RedSocial[]> {
         return this.prisma.redSocial.findMany({
-            where: { activo: true },
+            where: { estado: 'ACTIVO' },
             orderBy: { nombre: 'asc' }
         });
     }
@@ -29,14 +29,14 @@ export class RepositorioConfigPrisma implements RepositorioConfig {
         // Soft delete
         return this.prisma.redSocial.update({
             where: { id },
-            data: { activo: false }
+            data: { estado: 'INACTIVO' }
         });
     }
 
     // Metodos Donacion
     async listarMetodosDonacion(): Promise<MetodoDonacion[]> {
         return this.prisma.metodoDonacion.findMany({
-            where: { activo: true },
+            where: { estado: 'ACTIVO' },
             orderBy: { nombre: 'asc' }
         });
     }
@@ -56,7 +56,34 @@ export class RepositorioConfigPrisma implements RepositorioConfig {
         // Soft delete
         return this.prisma.metodoDonacion.update({
             where: { id },
-            data: { activo: false }
+            data: { estado: 'INACTIVO' }
+        });
+    }
+
+    // Categorias Artista
+    async listarCategoriasArtista(): Promise<CategoriaArtista[]> {
+        return this.prisma.categoriaArtista.findMany({
+            where: { estado: 'ACTIVO' },
+            orderBy: { nombre: 'asc' }
+        });
+    }
+
+    async crearCategoriaArtista(data: { nombre: string }): Promise<CategoriaArtista> {
+        return this.prisma.categoriaArtista.create({ data });
+    }
+
+    async actualizarCategoriaArtista(id: string, data: Partial<CategoriaArtista>): Promise<CategoriaArtista> {
+        return this.prisma.categoriaArtista.update({
+            where: { id },
+            data
+        });
+    }
+
+    async eliminarCategoriaArtista(id: string): Promise<CategoriaArtista> {
+        // Soft delete
+        return this.prisma.categoriaArtista.update({
+            where: { id },
+            data: { estado: 'INACTIVO' }
         });
     }
 

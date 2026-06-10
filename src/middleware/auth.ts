@@ -29,7 +29,8 @@ function getSecret(): string {
  * Generates a signed JWT for a user.
  */
 export function generateToken(payload: { id: string; email: string; rol?: string }): string {
-    return jwt.sign(payload, getSecret(), { expiresIn: '7d' });
+    const days = Number.parseInt(process.env.JWT_EXPIRES_IN_DAYS || '30', 10);
+    return jwt.sign(payload, getSecret(), { expiresIn: `${days}d` });
 }
 
 /**

@@ -25,15 +25,15 @@ describe('GestionCuentaCasoUso', () => {
         });
 
         it('debe deshabilitar la cuenta exitosamente', async () => {
-            const usuarioMock = { id: '123', estadoCuenta: 'ACTIVO' };
+            const usuarioMock = { id: '123', estado: 'ACTIVO' };
             mockRepositorioUsuario.buscarPorId.mockResolvedValue(usuarioMock);
-            mockRepositorioUsuario.actualizar.mockResolvedValue({ ...usuarioMock, estadoCuenta: 'DESHABILITADO' });
+            mockRepositorioUsuario.actualizar.mockResolvedValue({ ...usuarioMock, estado: 'DESHABILITADO' });
 
             const result = await casoUso.deshabilitarCuenta('123');
 
             expect(mockRepositorioUsuario.buscarPorId).toHaveBeenCalledWith('123');
-            expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', { estadoCuenta: 'DESHABILITADO' });
-            expect(result.estadoCuenta).toBe('DESHABILITADO');
+            expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', { estado: 'DESHABILITADO' });
+            expect(result.estado).toBe('DESHABILITADO');
         });
     });
 
@@ -44,14 +44,14 @@ describe('GestionCuentaCasoUso', () => {
         });
 
         it('debe programar la eliminacion exitosamente a los 30 dias', async () => {
-            const usuarioMock = { id: '123', estadoCuenta: 'ACTIVO' };
+            const usuarioMock = { id: '123', estado: 'ACTIVO' };
             mockRepositorioUsuario.buscarPorId.mockResolvedValue(usuarioMock);
             mockRepositorioUsuario.actualizar.mockResolvedValue(usuarioMock);
 
             await casoUso.programarEliminacion('123');
 
             expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', {
-                estadoCuenta: 'ELIMINACION_PENDIENTE',
+                estado: 'ELIMINACION_PENDIENTE',
                 fechaEliminacionProgramada: expect.any(Date),
             });
         });
@@ -64,14 +64,14 @@ describe('GestionCuentaCasoUso', () => {
         });
 
         it('debe reactivar la cuenta exitosamente', async () => {
-            const usuarioMock = { id: '123', estadoCuenta: 'DESHABILITADO' };
+            const usuarioMock = { id: '123', estado: 'DESHABILITADO' };
             mockRepositorioUsuario.buscarPorId.mockResolvedValue(usuarioMock);
             mockRepositorioUsuario.actualizar.mockResolvedValue(usuarioMock);
 
             await casoUso.reactivarCuenta('123');
 
             expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', {
-                estadoCuenta: 'ACTIVO',
+                estado: 'ACTIVO',
                 fechaEliminacionProgramada: null,
             });
         });
@@ -84,14 +84,14 @@ describe('GestionCuentaCasoUso', () => {
         });
 
         it('debe banear al usuario exitosamente', async () => {
-            const usuarioMock = { id: '123', estadoCuenta: 'ACTIVO' };
+            const usuarioMock = { id: '123', estado: 'ACTIVO' };
             mockRepositorioUsuario.buscarPorId.mockResolvedValue(usuarioMock);
             mockRepositorioUsuario.actualizar.mockResolvedValue(usuarioMock);
 
             await casoUso.banearUsuario('123');
 
             expect(mockRepositorioUsuario.actualizar).toHaveBeenCalledWith('123', {
-                estadoCuenta: 'BANEADO',
+                estado: 'BANEADO',
             });
         });
     });
