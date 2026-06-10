@@ -3,36 +3,27 @@ import { loginSchema, registerSchema, refreshSchema } from './auth.schema';
 
 describe('Auth Schemas Validation', () => {
     describe('loginSchema', () => {
-        it('debería validar correctamente un correo válido', () => {
-            const data = { correo: 'test@example.com' };
+        it('debería validar correctamente un idToken válido', () => {
+            const data = { idToken: 'valid-token' };
             const result = loginSchema.safeParse(data);
             expect(result.success).toBe(true);
         });
 
-        it('debería fallar si no se proporciona el correo', () => {
+        it('debería fallar si no se proporciona el idToken', () => {
             const result = loginSchema.safeParse({});
             expect(result.success).toBe(false);
             if (!result.success) {
                 const errors = result.error.flatten().fieldErrors;
-                expect(errors.correo).toContain('El correo es requerido');
+                expect(errors.idToken).toContain('El idToken es requerido');
             }
         });
 
-        it('debería fallar si el correo no tiene un formato válido', () => {
-            const result = loginSchema.safeParse({ correo: 'invalido' });
+        it('debería fallar si el idToken está vacío', () => {
+            const result = loginSchema.safeParse({ idToken: '' });
             expect(result.success).toBe(false);
             if (!result.success) {
                 const errors = result.error.flatten().fieldErrors;
-                expect(errors.correo).toContain('El correo debe ser un correo válido');
-            }
-        });
-
-        it('debería fallar si el correo está vacío', () => {
-            const result = loginSchema.safeParse({ correo: '' });
-            expect(result.success).toBe(false);
-            if (!result.success) {
-                const errors = result.error.flatten().fieldErrors;
-                expect(errors.correo).toContain('El correo es requerido');
+                expect(errors.idToken).toContain('El idToken es requerido');
             }
         });
     });
@@ -40,9 +31,7 @@ describe('Auth Schemas Validation', () => {
     describe('registerSchema', () => {
         it('debería validar correctamente un registro válido', () => {
             const data = {
-                correo: 'test@example.com',
-                nombre: 'John Doe',
-                imagen: 'http://example.com/img.jpg',
+                idToken: 'valid-token',
                 zonaHoraria: 'America/Bogota',
             };
             const result = registerSchema.safeParse(data);
@@ -51,42 +40,24 @@ describe('Auth Schemas Validation', () => {
 
         it('debería fallar si falta algún campo obligatorio', () => {
             const result = registerSchema.safeParse({
-                correo: 'test@example.com',
-            });
-            expect(result.success).toBe(false);
-            if (!result.success) {
-                const errors = result.error.flatten().fieldErrors;
-                expect(errors.nombre).toContain('El nombre es requerido');
-                expect(errors.imagen).toContain('La imagen es requerida');
-                expect(errors.zonaHoraria).toContain('La zona horaria es requerida');
-            }
-        });
-
-        it('debería fallar si el correo está vacío', () => {
-            const result = registerSchema.safeParse({
-                correo: '',
-                nombre: 'John Doe',
-                imagen: 'http://example.com/img.jpg',
                 zonaHoraria: 'America/Bogota',
             });
             expect(result.success).toBe(false);
             if (!result.success) {
                 const errors = result.error.flatten().fieldErrors;
-                expect(errors.correo).toContain('El correo es requerido');
+                expect(errors.idToken).toContain('El idToken es requerido');
             }
         });
 
-        it('debería fallar si el correo tiene un formato inválido', () => {
+        it('debería fallar si el idToken está vacío', () => {
             const result = registerSchema.safeParse({
-                correo: 'invalido',
-                nombre: 'John Doe',
-                imagen: 'http://example.com/img.jpg',
+                idToken: '',
                 zonaHoraria: 'America/Bogota',
             });
             expect(result.success).toBe(false);
             if (!result.success) {
                 const errors = result.error.flatten().fieldErrors;
-                expect(errors.correo).toContain('El correo debe ser un correo válido');
+                expect(errors.idToken).toContain('El idToken es requerido');
             }
         });
     });

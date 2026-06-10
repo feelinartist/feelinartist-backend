@@ -52,26 +52,26 @@ describe('ControladorAutenticacion', () => {
     });
 
     describe('iniciarSesion', () => {
-        it('should return 400 if correo is missing', async () => {
-            req.body = { nombre: 'Test User' };
+        it('should return 400 if idToken is missing', async () => {
+            req.body = { zonaHoraria: 'Test User' };
 
             await controller.iniciarSesion(req as Request, res as Response);
 
             expect(statusMock).toHaveBeenCalledWith(400);
-            expect(jsonMock).toHaveBeenCalledWith({ message: 'El correo es requerido' });
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'El idToken es requerido' });
         });
 
-        it('should return 400 if correo is invalid', async () => {
-            req.body = { correo: 'invalido' };
+        it('should return 400 if idToken is empty string', async () => {
+            req.body = { idToken: '' };
 
             await controller.iniciarSesion(req as Request, res as Response);
 
             expect(statusMock).toHaveBeenCalledWith(400);
-            expect(jsonMock).toHaveBeenCalledWith({ message: 'El correo debe ser un correo válido' });
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'El idToken es requerido' });
         });
 
         it('should return 404 if user does not exist', async () => {
-            req.body = { correo: 'nuevo@example.com' };
+            req.body = { idToken: 'valid-token' };
             (globalThis as any).mockAuthServiceIniciarSesion.mockResolvedValue(null);
 
             await controller.iniciarSesion(req as Request, res as Response);
@@ -81,7 +81,7 @@ describe('ControladorAutenticacion', () => {
         });
 
         it('should login, generate token and return user details with status 200', async () => {
-            req.body = { correo: 'test@example.com', nombre: 'Test User', imagen: 'avatar.png', zonaHoraria: 'America/Lima' };
+            req.body = { idToken: 'valid-token' };
             const mockUser = {
                 id: 'user-1',
                 correo: 'test@example.com',
@@ -97,10 +97,7 @@ describe('ControladorAutenticacion', () => {
             await controller.iniciarSesion(req as Request, res as Response);
 
             expect((globalThis as any).mockAuthServiceIniciarSesion).toHaveBeenCalledWith(
-                'test@example.com',
-                'Test User',
-                'avatar.png',
-                'America/Lima'
+                'valid-token'
             );
             expect(statusMock).toHaveBeenCalledWith(200);
             expect(jsonMock).toHaveBeenCalledWith({
@@ -110,8 +107,8 @@ describe('ControladorAutenticacion', () => {
             });
         });
 
-        it('should login an existing user with only email provided', async () => {
-            req.body = { correo: 'existente@example.com' };
+        it('should login an existing user with only idToken provided', async () => {
+            req.body = { idToken: 'valid-token' };
             const mockUser = {
                 id: 'user-2',
                 correo: 'existente@example.com',
@@ -134,7 +131,7 @@ describe('ControladorAutenticacion', () => {
         });
 
         it('should return 500 status on service error', async () => {
-            req.body = { correo: 'test@example.com' };
+            req.body = { idToken: 'valid-token' };
             (globalThis as any).mockAuthServiceIniciarSesion.mockRejectedValue(new Error('Auth error'));
 
             await controller.iniciarSesion(req as Request, res as Response);
@@ -143,38 +140,41 @@ describe('ControladorAutenticacion', () => {
             expect(jsonMock).toHaveBeenCalledWith({ message: 'Error interno del servidor' });
             expect(loggerSpy).toHaveBeenCalled();
         });
+
+        it('should return 500 status and handle errors without message property', async () => {
+            req.body = { idToken: 'valid-token' };
+            (globalThis as any).mockAuthServiceIniciarSesion.mockRejectedValue('Error de red sin objeto Error');
+
+            await controller.iniciarSesion(req as Request, res as Response);
+
+            expect(statusMock).toHaveBeenCalledWith(500);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Error interno del servidor' });
+            expect(loggerSpy).toHaveBeenCalled();
+        });
+
+        it('should return 401 status on invalid Google token error', async () => {
+            req.body = { idToken: 'invalid-token' };
+            (globalThis as any).mockAuthServiceIniciarSesion.mockRejectedValue(new Error('Token de Google inválido o expirado: token signature is invalid'));
+
+            await controller.iniciarSesion(req as Request, res as Response);
+
+            expect(statusMock).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Token de Google inválido o expirado: token signature is invalid' });
+        });
     });
 
     describe('registrar', () => {
-        it('should return 400 if correo is missing', async () => {
-            req.body = { nombre: 'Test', imagen: 'img', zonaHoraria: 'America/Lima' };
+        it('should return 400 if idToken is missing', async () => {
+            req.body = { zonaHoraria: 'America/Lima' };
 
             await controller.registrar(req as Request, res as Response);
 
             expect(statusMock).toHaveBeenCalledWith(400);
-            expect(jsonMock).toHaveBeenCalledWith({ message: 'El correo es requerido' });
-        });
-
-        it('should return 400 if nombre is missing', async () => {
-            req.body = { correo: 'test@example.com', imagen: 'img', zonaHoraria: 'America/Lima' };
-
-            await controller.registrar(req as Request, res as Response);
-
-            expect(statusMock).toHaveBeenCalledWith(400);
-            expect(jsonMock).toHaveBeenCalledWith({ message: 'El nombre es requerido' });
-        });
-
-        it('should return 400 if imagen is missing', async () => {
-            req.body = { correo: 'test@example.com', nombre: 'Test', zonaHoraria: 'America/Lima' };
-
-            await controller.registrar(req as Request, res as Response);
-
-            expect(statusMock).toHaveBeenCalledWith(400);
-            expect(jsonMock).toHaveBeenCalledWith({ message: 'La imagen es requerida' });
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'El idToken es requerido' });
         });
 
         it('should return 400 if zonaHoraria is missing', async () => {
-            req.body = { correo: 'test@example.com', nombre: 'Test', imagen: 'img' };
+            req.body = { idToken: 'valid-token' };
 
             await controller.registrar(req as Request, res as Response);
 
@@ -183,7 +183,7 @@ describe('ControladorAutenticacion', () => {
         });
 
         it('should return 400 if user is already registered', async () => {
-            req.body = { correo: 'existente@example.com', nombre: 'Test', imagen: 'img', zonaHoraria: 'America/Lima' };
+            req.body = { idToken: 'valid-token', zonaHoraria: 'America/Lima' };
             (globalThis as any).mockAuthServiceRegistrar.mockRejectedValue(new Error('El usuario ya está registrado'));
 
             await controller.registrar(req as Request, res as Response);
@@ -193,7 +193,7 @@ describe('ControladorAutenticacion', () => {
         });
 
         it('should register successfully and return 201 with token', async () => {
-            req.body = { correo: 'nuevo@example.com', nombre: 'Test', imagen: 'img', zonaHoraria: 'America/Lima' };
+            req.body = { idToken: 'valid-token', zonaHoraria: 'America/Lima' };
             const mockUser = {
                 id: 'new-user-id',
                 correo: 'nuevo@example.com',
@@ -211,9 +211,7 @@ describe('ControladorAutenticacion', () => {
             await controller.registrar(req as Request, res as Response);
 
             expect((globalThis as any).mockAuthServiceRegistrar).toHaveBeenCalledWith(
-                'nuevo@example.com',
-                'Test',
-                'img',
+                'valid-token',
                 'America/Lima'
             );
             expect(statusMock).toHaveBeenCalledWith(201);
@@ -225,7 +223,7 @@ describe('ControladorAutenticacion', () => {
         });
 
         it('should return 500 status on register service error', async () => {
-            req.body = { correo: 'nuevo@example.com', nombre: 'Test', imagen: 'img', zonaHoraria: 'America/Lima' };
+            req.body = { idToken: 'valid-token', zonaHoraria: 'America/Lima' };
             (globalThis as any).mockAuthServiceRegistrar.mockRejectedValue(new Error('Db error'));
 
             await controller.registrar(req as Request, res as Response);
@@ -233,6 +231,16 @@ describe('ControladorAutenticacion', () => {
             expect(statusMock).toHaveBeenCalledWith(500);
             expect(jsonMock).toHaveBeenCalledWith({ message: 'Error interno del servidor' });
             expect(loggerSpy).toHaveBeenCalled();
+        });
+
+        it('should return 401 status on invalid Google token error during register', async () => {
+            req.body = { idToken: 'invalid-token', zonaHoraria: 'America/Lima' };
+            (globalThis as any).mockAuthServiceRegistrar.mockRejectedValue(new Error('Token de Google inválido o sin correo'));
+
+            await controller.registrar(req as Request, res as Response);
+
+            expect(statusMock).toHaveBeenCalledWith(401);
+            expect(jsonMock).toHaveBeenCalledWith({ message: 'Token de Google inválido o sin correo' });
         });
     });
 

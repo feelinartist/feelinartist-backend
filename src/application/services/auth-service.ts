@@ -4,6 +4,8 @@ import { generateToken, generateRefreshToken } from '../../middleware/auth';
 import { redisService } from '../../infrastructure/services/redis-service';
 import jwt from 'jsonwebtoken';
 import { Usuario } from '../../domain/entities/user';
+import { OAuth2Client } from 'google-auth-library';
+import { configService } from '../../infrastructure/services/config-service';
 
 export interface AuthResponse {
     usuario: Usuario;
@@ -30,7 +32,34 @@ export class AuthService {
         return tokenStr;
     }
 
-    async iniciarSesion(correo: string, nombre?: string, imagen?: string, zonaHoraria?: string): Promise<AuthResponse | null> {
+    private async verificarGoogleToken(idToken: string) {
+        const clientId = await configService.get('GOOGLE_CLIENT_ID');
+        const client = new OAuth2Client(clientId);
+        
+        try {
+            const ticket = await client.verifyIdToken({
+                idToken,
+                audience: clientId,
+            });
+            const payload = ticket.getPayload();
+            
+            if (!payload?.email) {
+                throw new Error('Token de Google inválido o sin correo');
+            }
+            
+            return {
+                correo: payload.email,
+                nombre: payload.name || '',
+                imagen: payload.picture || ''
+            };
+        } catch (error: any) {
+            throw new Error(`Token de Google inválido o expirado: ${error?.message || 'Error desconocido'}`);
+        }
+    }
+
+    async iniciarSesion(idToken: string): Promise<AuthResponse | null> {
+        const { correo, nombre, imagen } = await this.verificarGoogleToken(idToken);
+
         const usuarioExistente = await this.repositorioUsuario.buscarPorCorreo(correo);
         if (!usuarioExistente) {
             return null;
@@ -61,7 +90,9 @@ export class AuthService {
         return { usuario, token, refreshToken };
     }
 
-    async registrar(correo: string, nombre: string, imagen: string, zonaHoraria: string): Promise<AuthResponse> {
+    async registrar(idToken: string, zonaHoraria: string): Promise<AuthResponse> {
+        const { correo, nombre, imagen } = await this.verificarGoogleToken(idToken);
+
         const usuarioExistente = await this.repositorioUsuario.buscarPorCorreo(correo);
         if (usuarioExistente) {
             throw new Error('El usuario ya está registrado');

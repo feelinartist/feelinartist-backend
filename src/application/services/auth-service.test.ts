@@ -5,6 +5,28 @@ import { RepositorioAuth } from '../../domain/repositories/auth-repository';
 import { redisService } from '../../infrastructure/services/redis-service';
 import jwt from 'jsonwebtoken';
 
+const mocks = vi.hoisted(() => ({
+    verifyIdToken: vi.fn().mockResolvedValue({
+        getPayload: vi.fn().mockReturnValue({
+            email: 'test@test.com',
+            name: 'Nombre',
+            picture: 'imagen.jpg'
+        })
+    })
+}));
+
+vi.mock('../../infrastructure/services/config-service', () => ({
+    configService: {
+        get: vi.fn().mockResolvedValue('fake-client-id')
+    }
+}));
+
+vi.mock('google-auth-library', () => ({
+    OAuth2Client: class {
+        verifyIdToken = mocks.verifyIdToken;
+    }
+}));
+
 describe('AuthService', () => {
     let authService: AuthService;
     let mockUserRepo: Partial<RepositorioUsuario>;
@@ -40,7 +62,7 @@ describe('AuthService', () => {
         it('debería retornar null si el usuario no existe', async () => {
             mockUserRepo.buscarPorCorreo = vi.fn().mockResolvedValue(null);
 
-            const result = await authService.iniciarSesion('no-existe@test.com');
+            const result = await authService.iniciarSesion('valid-id-token');
 
             expect(result).toBeNull();
         });
@@ -53,7 +75,7 @@ describe('AuthService', () => {
             mockUserRepo.actualizar = vi.fn().mockResolvedValue(updatedUser);
             mockAuthRepo.crearRefreshToken = vi.fn().mockResolvedValue({} as any);
 
-            const result = await authService.iniciarSesion('test@test.com', 'Nombre', 'imagen.jpg');
+            const result = await authService.iniciarSesion('valid-id-token');
 
             expect(mockUserRepo.actualizar).toHaveBeenCalledWith('u-1', {
                 estado: 'ACTIVO',
@@ -73,37 +95,73 @@ describe('AuthService', () => {
             mockUserRepo.actualizar = vi.fn().mockResolvedValue(updatedUser);
             mockAuthRepo.crearRefreshToken = vi.fn().mockResolvedValue({} as any);
 
-            const result = await authService.iniciarSesion('test@test.com');
+            const result = await authService.iniciarSesion('valid-id-token');
 
             expect(mockUserRepo.actualizar).toHaveBeenCalledWith('u-1', {
                 estado: 'ACTIVO',
-                fechaEliminacionProgramada: null
+                fechaEliminacionProgramada: null,
+                imagen: 'imagen.jpg'
             });
             expect(result).toBeDefined();
         });
 
         it('no debería actualizar campos si el usuario está ACTIVO y ya tiene los mismos datos', async () => {
-            const mockUser = { id: 'u-1', correo: 'test@test.com', estado: 'ACTIVO', nombre: 'Nombre Existente', imagen: 'img.jpg', rol: null };
+            const mockUser = { id: 'u-1', correo: 'test@test.com', estado: 'ACTIVO', nombre: 'Nombre', imagen: 'imagen.jpg', rol: null };
 
             mockUserRepo.buscarPorCorreo = vi.fn().mockResolvedValue(mockUser);
             mockAuthRepo.crearRefreshToken = vi.fn().mockResolvedValue({} as any);
 
-            const result = await authService.iniciarSesion('test@test.com', 'Nombre Existente', 'img.jpg');
+            const result = await authService.iniciarSesion('valid-id-token');
 
             expect(mockUserRepo.actualizar).not.toHaveBeenCalled();
             expect(result).toBeDefined();
         });
 
         it('no debería actualizar el nombre si ya está definido aunque se pase otro en iniciarSesion', async () => {
-            const mockUser = { id: 'u-1', correo: 'test@test.com', estado: 'ACTIVO', nombre: 'Nombre Existente', rol: null };
+            const mockUser = { id: 'u-1', correo: 'test@test.com', estado: 'ACTIVO', nombre: 'Nombre Existente', imagen: 'imagen.jpg', rol: null };
 
             mockUserRepo.buscarPorCorreo = vi.fn().mockResolvedValue(mockUser);
             mockAuthRepo.crearRefreshToken = vi.fn().mockResolvedValue({} as any);
 
-            const result = await authService.iniciarSesion('test@test.com', 'Nombre Diferente');
+            const result = await authService.iniciarSesion('valid-id-token');
 
             expect(mockUserRepo.actualizar).not.toHaveBeenCalled();
             expect(result).toBeDefined();
+        });
+
+        it('debería lanzar error si el token de Google no contiene email', async () => {
+            mocks.verifyIdToken.mockResolvedValueOnce({
+                getPayload: vi.fn().mockReturnValue({ name: 'Sin Email' })
+            });
+
+            await expect(authService.iniciarSesion('valid-id-token'))
+                .rejects.toThrow('Token de Google inválido o expirado: Token de Google inválido o sin correo');
+        });
+
+        it('debería lanzar error si el payload de Google es undefined', async () => {
+            mocks.verifyIdToken.mockResolvedValueOnce({
+                getPayload: vi.fn().mockReturnValue(undefined)
+            });
+
+            await expect(authService.iniciarSesion('valid-id-token'))
+                .rejects.toThrow('Token de Google inválido o expirado: Token de Google inválido o sin correo');
+        });
+
+        it('debería usar Error desconocido si el error capturado no tiene message', async () => {
+            mocks.verifyIdToken.mockRejectedValueOnce('Error de red tipo string');
+
+            await expect(authService.iniciarSesion('valid-id-token'))
+                .rejects.toThrow('Token de Google inválido o expirado: Error desconocido');
+        });
+        it('debería usar strings vacíos si el payload de Google no tiene nombre ni imagen', async () => {
+            mocks.verifyIdToken.mockResolvedValueOnce({
+                getPayload: vi.fn().mockReturnValue({ email: 'no-name@test.com' })
+            });
+            mockUserRepo.buscarPorCorreo = vi.fn().mockResolvedValue(null);
+
+            const result = await authService.iniciarSesion('valid-id-token');
+
+            expect(result).toBeNull();
         });
     });
 
@@ -111,7 +169,7 @@ describe('AuthService', () => {
         it('debería lanzar error si el usuario ya existe', async () => {
             mockUserRepo.buscarPorCorreo = vi.fn().mockResolvedValue({ id: 'u-1' });
 
-            await expect(authService.registrar('test@test.com', 'Nombre', 'img', 'America/Bogota'))
+            await expect(authService.registrar('valid-id-token', 'America/Bogota'))
                 .rejects.toThrow('El usuario ya está registrado');
         });
 
@@ -121,12 +179,12 @@ describe('AuthService', () => {
             mockUserRepo.crear = vi.fn().mockResolvedValue(mockCreated);
             mockAuthRepo.crearRefreshToken = vi.fn().mockResolvedValue({} as any);
 
-            const result = await authService.registrar('test@test.com', 'Nombre', 'img', 'America/Bogota');
+            const result = await authService.registrar('valid-id-token', 'America/Bogota');
 
             expect(mockUserRepo.crear).toHaveBeenCalledWith({
                 correo: 'test@test.com',
                 nombre: 'Nombre',
-                imagen: 'img',
+                imagen: 'imagen.jpg',
                 zonaHoraria: 'America/Bogota',
             });
             expect(result.token).toBeDefined();

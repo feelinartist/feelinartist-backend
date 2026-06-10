@@ -19,9 +19,9 @@ export class ControladorAutenticacion {
                 return res.status(400).json({ message: errorMsg });
             }
 
-            const { correo, nombre, imagen, zonaHoraria } = validation.data;
+            const { idToken } = validation.data;
 
-            const response = await authService.iniciarSesion(correo, nombre, imagen, zonaHoraria);
+            const response = await authService.iniciarSesion(idToken);
             if (!response) {
                 return res.status(404).json({ message: 'Usuario no registrado' });
             }
@@ -32,6 +32,9 @@ export class ControladorAutenticacion {
                 refreshToken: response.refreshToken,
             });
         } catch (error: any) {
+            if (error.message?.includes('Token de Google inválido')) {
+                return res.status(401).json({ message: error.message });
+            }
             logger.error(`Error en iniciarSesion: ${error.message}`, error.stack);
             return res.status(500).json({ message: 'Error interno del servidor' });
         }
@@ -45,9 +48,9 @@ export class ControladorAutenticacion {
                 return res.status(400).json({ message: errorMsg });
             }
 
-            const { correo, nombre, imagen, zonaHoraria } = validation.data;
+            const { idToken, zonaHoraria } = validation.data;
 
-            const response = await authService.registrar(correo, nombre, imagen, zonaHoraria);
+            const response = await authService.registrar(idToken, zonaHoraria);
 
             return res.status(201).json({
                 ...response.usuario,
@@ -55,6 +58,9 @@ export class ControladorAutenticacion {
                 refreshToken: response.refreshToken,
             });
         } catch (error: any) {
+            if (error.message?.includes('Token de Google inválido')) {
+                return res.status(401).json({ message: error.message });
+            }
             if (error.message === 'El usuario ya está registrado') {
                 return res.status(400).json({ message: error.message });
             }

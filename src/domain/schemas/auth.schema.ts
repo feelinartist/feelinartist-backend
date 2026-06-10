@@ -1,26 +1,15 @@
 import { z } from 'zod';
 
 export const loginSchema = z.object({
-    correo: z.email({
-        error: (issue) => issue.input === undefined || issue.input === '' ? 'El correo es requerido' : 'El correo debe ser un correo válido'
-    }),
-    nombre: z.string().optional(),
-    imagen: z.string().optional(),
-    zonaHoraria: z.string().optional(),
+    idToken: z.string({
+        message: 'El idToken es requerido',
+    }).min(1, 'El idToken es requerido'),
 });
 
 export const registerSchema = z.object({
-    correo: z.email({
-        error: (issue) => issue.input === undefined || issue.input === '' ? 'El correo es requerido' : 'El correo debe ser un correo válido'
-    }),
-    nombre: z.string({
-        message: 'El nombre es requerido',
-    })
-    .min(1, 'El nombre es requerido'),
-    imagen: z.string({
-        message: 'La imagen es requerida',
-    })
-    .min(1, 'La imagen es requerida'),
+    idToken: z.string({
+        message: 'El idToken es requerido',
+    }).min(1, 'El idToken es requerido'),
     zonaHoraria: z.string({
         message: 'La zona horaria es requerida',
     })
